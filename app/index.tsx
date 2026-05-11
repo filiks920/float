@@ -31,8 +31,8 @@ export default function Index() {
   }
 
   if (!session) {
-    return <Redirect href="./AuthScreen" />;
+    return <Redirect href={"../AuthScreen" as any} />;
   }
 
-  return <Redirect href="./home" />;
+  return <Redirect href={"../screens/HomeScreen" as any} />;
 }

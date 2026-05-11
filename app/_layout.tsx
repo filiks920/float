@@ -1,13 +1,19 @@
-import { Session } from "@supabase/supabase-js";
-import { Stack } from "expo-router";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { Colors } from "./constants/colors";
-import { supabase } from "./utils/supabase";
+import { useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
+import { Session } from '@supabase/supabase-js';
+import { AppState, AppStateStatus } from 'react-native';
+import { supabase } from './utils/supabase';
+import { Colors } from './constants/colors';
+import { ActivityIndicator, View } from 'react-native';
+import LockScreen from './screens/LockScreen';
+
+// AppState tracks if app is in foreground or background
+// When app comes back from background we re-lock it
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [locked, setLocked] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -15,37 +21,52 @@ export default function RootLayout() {
       setLoading(false);
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        // Lock app when user logs out
+        if (!session) setLocked(true);
+      }
+    );
 
-    return () => subscription.unsubscribe();
+    // Re-lock when app comes back from background
+    const appStateListener = AppState.addEventListener(
+      'change',
+      (state: AppStateStatus) => {
+        if (state === 'background') setLocked(true);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+      appStateListener.remove();
+    };
   }, []);
 
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: Colors.background,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <View style={{
+        flex: 1,
+        backgroundColor: Colors.background,
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
         <ActivityIndicator color={Colors.accent} size="large" />
       </View>
     );
   }
 
+  // Show lock screen if app is locked and user is logged in
+  if (locked && session) {
+    return <LockScreen onUnlock={() => setLocked(false)} />;
+  }
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {session ? (
-        <Stack.Screen name="screens/HomeScreen" />
-      ) : (
-        <Stack.Screen name="AuthScreen" />
-      )}
+      <Stack.Screen name="index" />
+      <Stack.Screen name="AuthScreen" />
+      <Stack.Screen name="screens/HomeScreen" />
+      <Stack.Screen name="screens/BankConnectionScreen" />
     </Stack>
   );
 }
