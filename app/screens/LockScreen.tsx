@@ -1,14 +1,14 @@
+import { useEffect } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
-} from 'react-native';
-import { useEffect } from 'react';
-import { Colors } from '../constants/colors';
-import { Typography } from '../constants/typography';
-import { useBiometrics } from '../hooks/useBiometrics';
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Colors } from "../constants/colors";
+import { Typography } from "../constants/typography";
+import { useBiometrics } from "../hooks/useBiometrics";
 
 // This screen shows when app opens or comes back from background
 // User must authenticate before seeing any financial data
@@ -45,15 +45,11 @@ export default function LockScreen({ onUnlock }: { onUnlock: () => void }) {
         <Text style={styles.lockEmoji}>🔒</Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleAuthenticate}
-      >
+      <TouchableOpacity style={styles.button} onPress={handleAuthenticate}>
         <Text style={styles.buttonText}>
-          {isSupported ? '👆 Tap to unlock' : 'Open Float'}
+          {isSupported ? "👆 Tap to unlock" : "Open Float"}
         </Text>
       </TouchableOpacity>
-
     </View>
   );
 }
@@ -62,13 +58,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 16,
   },
   logo: {
     fontSize: 48,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.accent,
     letterSpacing: -2,
   },
@@ -94,6 +90,6 @@ const styles = StyleSheet.create({
   buttonText: {
     ...Typography.body,
     color: Colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

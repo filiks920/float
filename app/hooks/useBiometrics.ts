@@ -1,5 +1,5 @@
-import * as LocalAuthentication from 'expo-local-authentication';
-import { useState, useEffect } from 'react';
+import * as LocalAuthentication from "expo-local-authentication";
+import { useEffect, useState } from "react";
 
 // This hook handles all biometric logic
 // Any screen can use it by importing it
@@ -29,8 +29,8 @@ export function useBiometrics() {
     }
 
     const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Verify it\'s you to open Float',
-      fallbackLabel: 'Use passcode',
+      promptMessage: "Verify it's you to open Float",
+      fallbackLabel: "Use passcode",
       disableDeviceFallback: false,
     });
 

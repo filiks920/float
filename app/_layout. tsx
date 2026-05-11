@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
-import { Session } from '@supabase/supabase-js';
-import { AppState, AppStateStatus } from 'react-native';
-import { supabase } from './utils/supabase';
-import { Colors } from './constants/colors';
-import { ActivityIndicator, View } from 'react-native';
-import LockScreen from './screens/LockScreen';
+import { Session } from "@supabase/supabase-js";
+import { Stack } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  AppState,
+  AppStateStatus,
+  View,
+} from "react-native";
+import { Colors } from "./constants/colors";
+import LockScreen from "./screens/LockScreen";
+import { supabase } from "./utils/supabase";
 
 // AppState tracks if app is in foreground or background
 // When app comes back from background we re-lock it
@@ -21,20 +25,20 @@ export default function RootLayout() {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        // Lock app when user logs out
-        if (!session) setLocked(true);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      // Lock app when user logs out
+      if (!session) setLocked(true);
+    });
 
     // Re-lock when app comes back from background
     const appStateListener = AppState.addEventListener(
-      'change',
+      "change",
       (state: AppStateStatus) => {
-        if (state === 'background') setLocked(true);
-      }
+        if (state === "background") setLocked(true);
+      },
     );
 
     return () => {
@@ -45,12 +49,14 @@ export default function RootLayout() {
 
   if (loading) {
     return (
-      <View style={{
-        flex: 1,
-        backgroundColor: Colors.background,
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <ActivityIndicator color={Colors.accent} size="large" />
       </View>
     );
@@ -64,7 +70,7 @@ export default function RootLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
-      <Stack.Screen name="AuthScreen" />
+      <Stack.Screen name="authScreen" />
       <Stack.Screen name="screens/HomeScreen" />
       <Stack.Screen name="screens/BankConnectionScreen" />
     </Stack>

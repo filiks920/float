@@ -11,6 +11,10 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "app/constants/.typography.tsk"
+    "app/constants/.typography.ts",
+    "app/screens/LockScreen.tsx",
+    "app/screens/HomeScreen. tsx",
+    "app/_layout. tsx",
+    "app/authScreen.tsx"
   ]
 }

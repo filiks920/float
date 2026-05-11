@@ -1,18 +1,18 @@
+import { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
-import { useState } from 'react';
-import { Colors } from '../constants/colors';
-import { Typography } from '../constants/typography';
-import { supabase } from '../utils/supabase';
+  View,
+} from "react-native";
+import { Colors } from "./constants/colors";
+import { Typography } from "./constants/typography";
+import { supabase } from "./utils/supabase";
 
 // What this screen does:
 // 1. Shows sign in form by default
@@ -23,28 +23,28 @@ import { supabase } from '../utils/supabase';
 export default function AuthScreen() {
   // useState stores values that change on screen
   // [currentValue, functionToChangeIt] = useState(startingValue)
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleAuth() {
     // Validate inputs before sending to server
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
     if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters');
+      Alert.alert("Error", "Password must be at least 8 characters");
       return;
     }
 
     // Email format check
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email');
+      Alert.alert("Error", "Please enter a valid email");
       return;
     }
 
@@ -57,13 +57,13 @@ export default function AuthScreen() {
           email: email.trim().toLowerCase(),
           password,
           options: {
-            data: { full_name: fullName }
-          }
+            data: { full_name: fullName },
+          },
         });
         if (error) throw error;
         Alert.alert(
-          'Check your email',
-          'We sent you a confirmation link. Click it to activate your account.'
+          "Check your email",
+          "We sent you a confirmation link. Click it to activate your account.",
         );
       } else {
         // Sign in to existing account
@@ -77,7 +77,7 @@ export default function AuthScreen() {
       }
     } catch (error: any) {
       // Show user friendly error messages
-      Alert.alert('Error', error.message);
+      Alert.alert("Error", error.message);
     } finally {
       // Always stop loading whether success or failure
       setLoading(false);
@@ -88,10 +88,9 @@ export default function AuthScreen() {
     // KeyboardAvoidingView pushes content up when keyboard opens
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.inner}>
-
         {/* Logo area */}
         <View style={styles.logoArea}>
           <Text style={styles.logo}>float</Text>
@@ -129,7 +128,7 @@ export default function AuthScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={true}
-            autoComplete={isSignUp ? 'new-password' : 'current-password'}
+            autoComplete={isSignUp ? "new-password" : "current-password"}
           />
 
           {/* Main button */}
@@ -142,7 +141,7 @@ export default function AuthScreen() {
               <ActivityIndicator color={Colors.background} />
             ) : (
               <Text style={styles.buttonText}>
-                {isSignUp ? 'Create account' : 'Sign in'}
+                {isSignUp ? "Create account" : "Sign in"}
               </Text>
             )}
           </TouchableOpacity>
@@ -154,12 +153,11 @@ export default function AuthScreen() {
           >
             <Text style={styles.toggleText}>
               {isSignUp
-                ? 'Already have an account? Sign in'
+                ? "Already have an account? Sign in"
                 : "Don't have an account? Sign up"}
             </Text>
           </TouchableOpacity>
         </View>
-
       </View>
     </KeyboardAvoidingView>
   );
@@ -172,16 +170,16 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 24,
   },
   logoArea: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 48,
   },
   logo: {
     fontSize: 48,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.accent,
     letterSpacing: -2,
   },
@@ -207,16 +205,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
     borderRadius: 12,
     padding: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   buttonText: {
     color: Colors.background,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   toggleButton: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 12,
   },
   toggleText: {

@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   RefreshControl,
@@ -7,8 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Typography } from "../constants/.typography";
 import { Colors } from "../constants/colors";
+import { Typography } from "../constants/typography";
 import { supabase } from "../utils/supabase";
 
 // FLOAT NUMBER CALCULATION
@@ -50,6 +51,7 @@ function getDate(): string {
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [userName, setUserName] = useState("");
   const [balance, setBalance] = useState(0);
   const [floatNumber, setFloatNumber] = useState(0);
@@ -65,13 +67,11 @@ export default function HomeScreen() {
 
   async function loadData() {
     try {
-      // Get current user
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get user profile
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name")
@@ -79,12 +79,10 @@ export default function HomeScreen() {
         .single();
 
       if (profile) {
-        // Get first name only
         const firstName = profile.full_name?.split(" ")[0] || "there";
         setUserName(firstName);
       }
 
-      // Get bank accounts total balance
       const { data: accounts } = await supabase
         .from("bank_accounts")
         .select("balance")
@@ -94,7 +92,6 @@ export default function HomeScreen() {
         accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0;
       setBalance(totalBalance);
 
-      // Get committed expenses due in next 14 days
       const fourteenDaysFromNow = new Date();
       fourteenDaysFromNow.setDate(fourteenDaysFromNow.getDate() + 14);
 
@@ -110,7 +107,6 @@ export default function HomeScreen() {
       const totalCommitted =
         expenses?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
 
-      // Get this month transactions
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
@@ -134,8 +130,6 @@ export default function HomeScreen() {
       setMonthlyIncome(income);
       setMonthlyExpenses(expenses2);
 
-      // Calculate float number
-      // Assume income every 30 days, find days until next expected income
       const dayOfMonth = new Date().getDate();
       const daysUntilIncome = Math.max(30 - dayOfMonth, 1);
 
@@ -153,13 +147,11 @@ export default function HomeScreen() {
     }
   }
 
-  // Pull to refresh
   function onRefresh() {
     setRefreshing(true);
     loadData();
   }
 
-  // Days until a date
   function daysUntil(dateString: string): number {
     const date = new Date(dateString);
     const today = new Date();
@@ -169,6 +161,7 @@ export default function HomeScreen() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+    router.replace("/authScreen");
   }
 
   if (loading) {
