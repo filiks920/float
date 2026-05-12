@@ -295,6 +295,13 @@ export default function HomeScreen() {
       >
         <Text style={styles.pulseButtonText}>🎯 view goals</Text>
       </TouchableOpacity>
+      {/* Settings Button */}
+      <TouchableOpacity
+        style={styles.pulseButton}
+        onPress={() => router.push("/screens/SettingsScreen" as any)}
+      >
+        <Text style={styles.pulseButtonText}>⚙️ settings</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }

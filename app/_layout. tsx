@@ -11,9 +11,6 @@ import { Colors } from "./constants/colors";
 import LockScreen from "./screens/LockScreen";
 import { supabase } from "./utils/supabase";
 
-// AppState tracks if app is in foreground or background
-// When app comes back from background we re-lock it
-
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,11 +26,9 @@ export default function RootLayout() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      // Lock app when user logs out
       if (!session) setLocked(true);
     });
 
-    // Re-lock when app comes back from background
     const appStateListener = AppState.addEventListener(
       "change",
       (state: AppStateStatus) => {
@@ -49,20 +44,17 @@ export default function RootLayout() {
 
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: Colors.background,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <View style={{
+        flex: 1,
+        backgroundColor: Colors.background,
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
         <ActivityIndicator color={Colors.accent} size="large" />
       </View>
     );
   }
 
-  // Show lock screen if app is locked and user is logged in
   if (locked && session) {
     return <LockScreen onUnlock={() => setLocked(false)} />;
   }
@@ -70,10 +62,12 @@ export default function RootLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
-      <Stack.Screen name="authScreen" />
+      <Stack.Screen name="AuthScreen" />
       <Stack.Screen name="screens/HomeScreen" />
       <Stack.Screen name="screens/BankConnectionScreen" />
       <Stack.Screen name="screens/IncomePulseScreen" />
+      <Stack.Screen name="screens/GoalsScreen" />
+      <Stack.Screen name="screens/SettingsScreen" />
     </Stack>
   );
 }
