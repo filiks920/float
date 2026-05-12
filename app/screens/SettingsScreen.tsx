@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
@@ -22,6 +22,7 @@ export default function SettingsScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,13 +35,11 @@ export default function SettingsScreen() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-
       const { data } = await supabase
         .from("profiles")
         .select("full_name, phone_number, currency")
         .eq("id", user.id)
         .single();
-
       setProfile(data);
     } catch (error) {
       console.error(error);
@@ -50,14 +49,12 @@ export default function SettingsScreen() {
   }
 
   async function handleSignOut() {
-    Alert.alert("Sign out", "Are you sure you want to sign out?", [
+    Alert.alert("Sign out", "Are you sure?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Sign out",
         style: "destructive",
-        onPress: async () => {
-          await supabase.auth.signOut();
-        },
+        onPress: async () => await supabase.auth.signOut(),
       },
     ]);
   }
@@ -65,7 +62,7 @@ export default function SettingsScreen() {
   async function handleDeleteAccount() {
     Alert.alert(
       "Delete account",
-      "This permanently deletes all your Float data. This cannot be undone.",
+      "This permanently deletes all your Float data. Cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -91,18 +88,18 @@ export default function SettingsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>loading settings...</Text>
+        <Text style={styles.loadingText}>loading...</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Settings</Text>
+      <Text style={styles.title}>Profile</Text>
 
-      {/* Profile Section */}
+      {/* Profile */}
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>PROFILE</Text>
+        <Text style={styles.sectionLabel}>ACCOUNT</Text>
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Name</Text>
@@ -118,7 +115,32 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* Security Section */}
+      {/* Appearance */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>APPEARANCE</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <View>
+              <Text style={styles.rowLabel}>Dark mode</Text>
+              <Text style={styles.rowSub}>Switch to dark theme</Text>
+            </View>
+            <Switch
+              value={darkMode}
+              onValueChange={(val) => {
+                setDarkMode(val);
+                Alert.alert(
+                  "Coming soon",
+                  "Full dark mode support is coming in the next update.",
+                );
+              }}
+              trackColor={{ false: Colors.border, true: Colors.accent }}
+              thumbColor={Colors.background}
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Security */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>SECURITY</Text>
         <View style={styles.card}>
@@ -132,27 +154,22 @@ export default function SettingsScreen() {
             <Switch
               value={biometricsEnabled}
               onValueChange={setBiometricsEnabled}
-              trackColor={{
-                false: Colors.border,
-                true: Colors.accent,
-              }}
-              thumbColor={Colors.textPrimary}
+              trackColor={{ false: Colors.border, true: Colors.accent }}
+              thumbColor={Colors.background}
             />
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>
             <View>
               <Text style={styles.rowLabel}>Auto lock</Text>
-              <Text style={styles.rowSub}>
-                Locks when app goes to background
-              </Text>
+              <Text style={styles.rowSub}>Locks when app backgrounds</Text>
             </View>
-            <Text style={styles.rowBadge}>Always on</Text>
+            <Text style={styles.badge}>Always on</Text>
           </View>
         </View>
       </View>
 
-      {/* Notifications Section */}
+      {/* Notifications */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
         <View style={styles.card}>
@@ -166,17 +183,14 @@ export default function SettingsScreen() {
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{
-                false: Colors.border,
-                true: Colors.accent,
-              }}
-              thumbColor={Colors.textPrimary}
+              trackColor={{ false: Colors.border, true: Colors.accent }}
+              thumbColor={Colors.background}
             />
           </View>
         </View>
       </View>
 
-      {/* About Section */}
+      {/* About */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>ABOUT</Text>
         <View style={styles.card}>
@@ -198,15 +212,11 @@ export default function SettingsScreen() {
       </View>
 
       {/* Sign out */}
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+      <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
         <Text style={styles.signOutText}>Sign out</Text>
       </TouchableOpacity>
 
-      {/* Delete account */}
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={handleDeleteAccount}
-      >
+      <TouchableOpacity onPress={handleDeleteAccount}>
         <Text style={styles.deleteText}>Delete account</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -220,7 +230,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 56,
     paddingBottom: 40,
     gap: 8,
   },
@@ -252,7 +262,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: "hidden",
@@ -261,36 +271,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    padding: 14,
   },
   divider: {
     height: 1,
     backgroundColor: Colors.border,
-    marginHorizontal: 16,
+    marginHorizontal: 14,
   },
   rowLabel: {
     ...Typography.body,
     color: Colors.textPrimary,
   },
   rowSub: {
-    ...Typography.caption,
+    ...Typography.label,
     color: Colors.textSecondary,
     marginTop: 2,
-    maxWidth: 200,
   },
   rowValue: {
     ...Typography.body,
     color: Colors.textSecondary,
   },
-  rowBadge: {
+  badge: {
     fontSize: 12,
     color: Colors.accent,
-    backgroundColor: Colors.accentDim,
+    backgroundColor: Colors.accentLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
+    overflow: "hidden",
   },
-  signOutButton: {
+  signOutBtn: {
     backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: 16,
@@ -304,14 +314,10 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontWeight: "600",
   },
-  deleteButton: {
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    marginTop: 4,
-  },
   deleteText: {
     ...Typography.body,
-    color: Colors.negative,
+    color: Colors.critical,
+    textAlign: "center",
+    padding: 12,
   },
 });

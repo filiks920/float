@@ -1,6 +1,14 @@
 import { Tabs } from "expo-router";
-import { BarChart2, Home, Lightbulb, User } from "lucide-react-native";
+import { Text, View } from "react-native";
 import { Colors } from "../constants/colors";
+
+function TabIcon({ emoji }: { emoji: string }) {
+  return (
+    <View style={{ alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ fontSize: 20 }}>{emoji}</Text>
+    </View>
+  );
+}
 
 export default function TabLayout() {
   return (
@@ -11,9 +19,9 @@ export default function TabLayout() {
           backgroundColor: Colors.background,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          paddingBottom: 24,
+          paddingBottom: 8,
           paddingTop: 4,
-          height: 80,
+          height: 60,
         },
         tabBarActiveTintColor: Colors.accent,
         tabBarInactiveTintColor: Colors.textMuted,
@@ -28,32 +36,28 @@ export default function TabLayout() {
         name="home"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          tabBarIcon: ({}) => <TabIcon emoji="🏠" />,
         }}
       />
       <Tabs.Screen
         name="pulse"
         options={{
           title: "Activity",
-          tabBarIcon: ({ color, size }) => (
-            <BarChart2 color={color} size={size} />
-          ),
+          tabBarIcon: ({}) => <TabIcon emoji="📊" />,
         }}
       />
       <Tabs.Screen
         name="goals"
         options={{
-          title: "Insights",
-          tabBarIcon: ({ color, size }) => (
-            <Lightbulb color={color} size={size} />
-          ),
+          title: "Goals",
+          tabBarIcon: ({}) => <TabIcon emoji="🎯" />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+          tabBarIcon: ({}) => <TabIcon emoji="👤" />,
         }}
       />
     </Tabs>

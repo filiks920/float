@@ -1,186 +1,224 @@
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { supabase } from "../utils/supabase";
 
-// Income Pulse shows:
-// 1. Last 4 weeks of income as visual bars
-// 2. Prediction of next income window
-// 3. Warning if dry spell is coming
+type Period = "day" | "week" | "month";
 
-interface WeekData {
-  week: string;
+interface Transaction {
+  id: string;
   amount: number;
-  isCurrentWeek: boolean;
+  type: "credit" | "debit";
+  description: string;
+  category: string;
+  date: string;
 }
 
-export default function IncomePulseScreen() {
-  const [weeklyData, setWeeklyData] = useState<WeekData[]>([]);
-  const [nextIncomeEstimate, setNextIncomeEstimate] = useState(0);
-  const [drySpellWarning, setDrySpellWarning] = useState(false);
+function formatKES(amount: number): string {
+  return `KSh ${Math.round(amount).toLocaleString("en-KE")}`;
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-KE", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getCategoryEmoji(category: string): string {
+  const map: Record<string, string> = {
+    salary: "💼",
+    food: "🍔",
+    transport: "🚗",
+    entertainment: "🎬",
+    utilities: "💡",
+    rent: "🏠",
+    health: "💊",
+    shopping: "🛍️",
+    savings: "🏦",
+  };
+  return map[category?.toLowerCase()] || "💸";
+}
+
+export default function ActivityScreen() {
+  const [period, setPeriod] = useState<Period>("week");
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [totalIn, setTotalIn] = useState(0);
+  const [totalOut, setTotalOut] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadIncomeData();
-  }, []);
+    loadActivity();
+  }, [period]);
 
-  async function loadIncomeData() {
+  async function loadActivity() {
+    setLoading(true);
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get last 4 weeks of credit transactions
-      const fourWeeksAgo = new Date();
-      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+      // Calculate start date based on period
+      const startDate = new Date();
+      if (period === "day") {
+        startDate.setHours(0, 0, 0, 0);
+      } else if (period === "week") {
+        startDate.setDate(startDate.getDate() - 7);
+      } else {
+        startDate.setDate(1);
+        startDate.setHours(0, 0, 0, 0);
+      }
 
-      const { data: transactions } = await supabase
+      const { data } = await supabase
         .from("transactions")
-        .select("amount, date, type")
+        .select("*")
         .eq("user_id", user.id)
-        .eq("type", "credit")
-        .gte("date", fourWeeksAgo.toISOString())
-        .order("date", { ascending: true });
+        .gte("date", startDate.toISOString())
+        .order("date", { ascending: false });
 
-      // Group transactions by week
-      const weeks: WeekData[] = [];
-      const now = new Date();
+      const txs = data || [];
+      setTransactions(txs);
 
-      for (let i = 3; i >= 0; i--) {
-        const weekStart = new Date();
-        weekStart.setDate(now.getDate() - i * 7 - 7);
-        const weekEnd = new Date();
-        weekEnd.setDate(now.getDate() - i * 7);
+      const income = txs
+        .filter((t) => t.type === "credit")
+        .reduce((sum, t) => sum + t.amount, 0);
 
-        const weekTotal =
-          transactions
-            ?.filter((t) => {
-              const date = new Date(t.date);
-              return date >= weekStart && date < weekEnd;
-            })
-            .reduce((sum, t) => sum + t.amount, 0) || 0;
+      const spent = txs
+        .filter((t) => t.type === "debit")
+        .reduce((sum, t) => sum + t.amount, 0);
 
-        weeks.push({
-          week:
-            i === 0 ? "this week" : i === 1 ? "last week" : `${i * 7} days ago`,
-          amount: weekTotal,
-          isCurrentWeek: i === 0,
-        });
-      }
-
-      setWeeklyData(weeks);
-
-      // Calculate average weekly income
-      const totalIncome = weeks.reduce((sum, w) => sum + w.amount, 0);
-      const avgWeekly = totalIncome / 4;
-      setNextIncomeEstimate(avgWeekly);
-
-      // Dry spell warning if current week is below 30% of average
-      const currentWeek = weeks[3].amount;
-      if (currentWeek < avgWeekly * 0.3 && avgWeekly > 0) {
-        setDrySpellWarning(true);
-      }
+      setTotalIn(income);
+      setTotalOut(spent);
     } catch (error) {
-      console.error("Error loading income data:", error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
   }
 
-  // Find max amount for bar chart scaling
-  const maxAmount = Math.max(...weeklyData.map((w) => w.amount), 1);
-
-  function formatKES(amount: number): string {
-    return `KSh ${Math.round(amount).toLocaleString("en-KE")}`;
-  }
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>reading your income pulse...</Text>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header */}
-      <Text style={styles.title}>Income pulse</Text>
-      <Text style={styles.subtitle}>Your earning pattern over 4 weeks</Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Header */}
+        <Text style={styles.title}>Activity</Text>
 
-      {/* Dry spell warning */}
-      {drySpellWarning && (
-        <View style={styles.warningCard}>
-          <Text style={styles.warningTitle}>⚠️ Dry spell ahead</Text>
-          <Text style={styles.warningText}>
-            Your income this week is lower than usual. Your float may tighten
-            soon.
+        {/* Period selector */}
+        <View style={styles.periodRow}>
+          {(["day", "week", "month"] as Period[]).map((p) => (
+            <TouchableOpacity
+              key={p}
+              style={[styles.periodBtn, period === p && styles.periodBtnActive]}
+              onPress={() => setPeriod(p)}
+            >
+              <Text
+                style={[
+                  styles.periodText,
+                  period === p && styles.periodTextActive,
+                ]}
+              >
+                {p === "day"
+                  ? "Today"
+                  : p === "week"
+                    ? "This week"
+                    : "This month"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Money in / Money out */}
+        <View style={styles.summaryRow}>
+          <View
+            style={[styles.summaryCard, { backgroundColor: Colors.safeLight }]}
+          >
+            <Text style={styles.summaryIcon}>↓</Text>
+            <Text style={styles.summaryLabel}>Money in</Text>
+            <Text style={[styles.summaryAmount, { color: Colors.safe }]}>
+              {formatKES(totalIn)}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.summaryCard,
+              { backgroundColor: Colors.criticalLight },
+            ]}
+          >
+            <Text style={styles.summaryIcon}>↑</Text>
+            <Text style={styles.summaryLabel}>Money out</Text>
+            <Text style={[styles.summaryAmount, { color: Colors.critical }]}>
+              {formatKES(totalOut)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Net */}
+        <View style={styles.netCard}>
+          <Text style={styles.netLabel}>Net</Text>
+          <Text
+            style={[
+              styles.netAmount,
+              {
+                color: totalIn - totalOut >= 0 ? Colors.safe : Colors.critical,
+              },
+            ]}
+          >
+            {totalIn - totalOut >= 0 ? "+" : ""}
+            {formatKES(totalIn - totalOut)}
           </Text>
         </View>
-      )}
 
-      {/* Weekly bar chart */}
-      <View style={styles.chartCard}>
-        <View style={styles.barsContainer}>
-          {weeklyData.map((week, index) => {
-            const barHeight =
-              maxAmount > 0 ? (week.amount / maxAmount) * 120 : 4;
+        {/* Transactions list */}
+        <Text style={styles.sectionLabel}>Transactions</Text>
 
-            return (
-              <View key={index} style={styles.barWrapper}>
-                <Text style={styles.barAmount}>
-                  {week.amount > 0 ? formatKES(week.amount) : "-"}
+        {loading ? (
+          <Text style={styles.loadingText}>loading...</Text>
+        ) : transactions.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>
+              No transactions for this period.
+            </Text>
+          </View>
+        ) : (
+          transactions.map((tx) => (
+            <View key={tx.id} style={styles.txCard}>
+              <View style={styles.txLeft}>
+                <Text style={styles.txEmoji}>
+                  {getCategoryEmoji(tx.category)}
                 </Text>
-                <View style={styles.barTrack}>
-                  <View
-                    style={[
-                      styles.bar,
-                      {
-                        height: Math.max(barHeight, 4),
-                        backgroundColor: week.isCurrentWeek
-                          ? Colors.accent
-                          : Colors.surface,
-                        borderColor: week.isCurrentWeek
-                          ? Colors.accent
-                          : Colors.border,
-                      },
-                    ]}
-                  />
+                <View>
+                  <Text style={styles.txDesc}>
+                    {tx.description || tx.category}
+                  </Text>
+                  <Text style={styles.txDate}>{formatDate(tx.date)}</Text>
                 </View>
-                <Text
-                  style={[
-                    styles.barLabel,
-                    week.isCurrentWeek && { color: Colors.accent },
-                  ]}
-                >
-                  {week.week}
-                </Text>
               </View>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Next income estimate */}
-      <View style={styles.estimateCard}>
-        <Text style={styles.estimateLabel}>Estimated next week</Text>
-        <Text style={styles.estimateAmount}>
-          {formatKES(nextIncomeEstimate)}
-        </Text>
-        <Text style={styles.estimateNote}>Based on your 4-week average</Text>
-      </View>
-
-      {/* Income tips */}
-      <View style={styles.tipsCard}>
-        <Text style={styles.tipsTitle}>What this means</Text>
-        <Text style={styles.tipsText}>
-          Your float number is calculated using these income patterns. More
-          consistent income = more accurate float.
-        </Text>
-      </View>
-    </ScrollView>
+              <Text
+                style={[
+                  styles.txAmount,
+                  {
+                    color: tx.type === "credit" ? Colors.safe : Colors.critical,
+                  },
+                ]}
+              >
+                {tx.type === "credit" ? "+" : "-"}
+                {formatKES(tx.amount)}
+              </Text>
+            </View>
+          ))
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -191,123 +229,135 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 40,
-    gap: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    letterSpacing: 1,
+    paddingTop: 56,
+    paddingBottom: 32,
+    gap: 12,
   },
   title: {
     ...Typography.title,
     color: Colors.textPrimary,
-  },
-  subtitle: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    marginTop: -8,
-  },
-  warningCard: {
-    backgroundColor: "#FFB80022",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.warning,
-  },
-  warningTitle: {
-    ...Typography.subtitle,
-    color: Colors.warning,
     marginBottom: 4,
   },
-  warningText: {
-    ...Typography.body,
-    color: Colors.warning,
+  periodRow: {
+    flexDirection: "row",
+    gap: 8,
   },
-  chartCard: {
+  periodBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
     backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 20,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  barsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    height: 180,
+  periodBtnActive: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
   },
-  barWrapper: {
+  periodText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+  },
+  periodTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  summaryRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  summaryCard: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-end",
+    borderRadius: 12,
+    padding: 16,
     gap: 4,
   },
-  barAmount: {
-    fontSize: 9,
+  summaryIcon: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  summaryLabel: {
+    ...Typography.label,
+    color: Colors.textSecondary,
+  },
+  summaryAmount: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  netCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  netLabel: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    fontWeight: "600",
+  },
+  netAmount: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  sectionLabel: {
+    ...Typography.label,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  loadingText: {
+    ...Typography.body,
     color: Colors.textMuted,
     textAlign: "center",
   },
-  barTrack: {
-    width: "60%",
-    height: 120,
-    justifyContent: "flex-end",
-  },
-  bar: {
-    width: "100%",
-    borderRadius: 6,
-    borderWidth: 1,
-    minHeight: 4,
-  },
-  barLabel: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
-  estimateCard: {
-    backgroundColor: Colors.accentDim,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.accent,
-  },
-  estimateLabel: {
-    ...Typography.caption,
-    color: Colors.accent,
-    letterSpacing: 1,
-  },
-  estimateAmount: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: Colors.accent,
-    marginVertical: 4,
-  },
-  estimateNote: {
-    ...Typography.caption,
-    color: Colors.accent,
-  },
-  tipsCard: {
+  emptyCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  tipsTitle: {
-    ...Typography.subtitle,
-    color: Colors.textPrimary,
-    marginBottom: 8,
-  },
-  tipsText: {
+  emptyText: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
+    textAlign: "center",
+  },
+  txCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  txLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  txEmoji: {
+    fontSize: 24,
+  },
+  txDesc: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    fontWeight: "500",
+  },
+  txDate: {
+    ...Typography.label,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  txAmount: {
+    fontSize: 15,
+    fontWeight: "700",
   },
 });
