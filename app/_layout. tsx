@@ -73,6 +73,7 @@ export default function RootLayout() {
       <Stack.Screen name="authScreen" />
       <Stack.Screen name="screens/HomeScreen" />
       <Stack.Screen name="screens/BankConnectionScreen" />
+      <Stack.Screen name="screens/IncomePulseScreen" />
     </Stack>
   );
 }

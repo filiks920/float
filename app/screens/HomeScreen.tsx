@@ -51,7 +51,6 @@ function getDate(): string {
 }
 
 export default function HomeScreen() {
-  const router = useRouter();
   const [userName, setUserName] = useState("");
   const [balance, setBalance] = useState(0);
   const [floatNumber, setFloatNumber] = useState(0);
@@ -60,6 +59,7 @@ export default function HomeScreen() {
   const [committedExpenses, setCommittedExpenses] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     loadData();
