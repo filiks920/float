@@ -144,7 +144,7 @@ export default function BankConnectionScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "#FFFFFF",
   },
   content: {
     flex: 1,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   securityNote: {
-    backgroundColor: Colors.accentDim,
+    backgroundColor: Colors.accentLight,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,

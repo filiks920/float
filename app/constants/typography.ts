@@ -1,26 +1,35 @@
 export const Typography = {
+  // Hero number — the Float amount
   hero: {
-    fontSize: 64,
+    fontSize: 56,
     fontWeight: "700" as const,
-    letterSpacing: -2,
+    letterSpacing: -1,
   },
+  // Screen titles
   title: {
-    fontSize: 28,
-    fontWeight: "700" as const,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600" as const,
   },
-  body: {
-    fontSize: 15,
-    fontWeight: "400" as const,
-    lineHeight: 22,
+  // Section subtitles
+  subtitle: {
+    fontSize: 16,
+    fontWeight: "500" as const,
   },
+  // Body text
+  body: {
+    fontSize: 14,
+    fontWeight: "400" as const,
+    lineHeight: 20,
+  },
+  // Small labels
   caption: {
+    fontSize: 13,
+    fontWeight: "500" as const,
+  },
+  // Tiny labels
+  label: {
     fontSize: 12,
     fontWeight: "500" as const,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
 } as const;

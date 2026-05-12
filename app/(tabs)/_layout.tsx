@@ -1,5 +1,19 @@
 import { Tabs } from "expo-router";
+import { Text, View } from "react-native";
 import { Colors } from "../constants/colors";
+
+function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+  return (
+    <View
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text style={{ fontSize: 20 }}>{emoji}</Text>
+    </View>
+  );
+}
 
 export default function TabLayout() {
   return (
@@ -7,56 +21,50 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.surface,
+          backgroundColor: Colors.background,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
           paddingBottom: 8,
-          paddingTop: 8,
+          paddingTop: 4,
           height: 60,
         },
         tabBarActiveTintColor: Colors.accent,
         tabBarInactiveTintColor: Colors.textMuted,
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: "600",
+          fontWeight: "500",
+          marginTop: 2,
         },
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
-          title: "float",
-          tabBarIcon: ({ color }) => <TabIcon symbol="◎" color={color} />,
+          title: "Home",
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="pulse"
         options={{
-          title: "pulse",
-          tabBarIcon: ({ color }) => <TabIcon symbol="△" color={color} />,
+          title: "Activity",
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="goals"
         options={{
-          title: "goals",
-          tabBarIcon: ({ color }) => <TabIcon symbol="◇" color={color} />,
+          title: "Insights",
+          tabBarIcon: ({ focused }) => <TabIcon emoji="💡" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "settings",
-          tabBarIcon: ({ color }) => <TabIcon symbol="○" color={color} />,
+          title: "Profile",
+          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
         }}
       />
     </Tabs>
   );
 }
-
-function TabIcon({ symbol, color }: { symbol: string; color: string }) {
-  return <Text style={{ color, fontSize: 16 }}>{symbol}</Text>;
-}
-
-import { Text } from "react-native";
-
