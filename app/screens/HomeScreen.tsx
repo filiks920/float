@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   RefreshControl,
@@ -44,7 +43,6 @@ function getDate(): string {
 }
 
 export default function HomeScreen() {
-  const router = useRouter();
   const [userName, setUserName] = useState("");
   const [balance, setBalance] = useState(0);
   const [floatNumber, setFloatNumber] = useState(0);
@@ -280,28 +278,6 @@ export default function HomeScreen() {
           <Text style={styles.balanceLabel}>across all accounts</Text>
         </View>
       </View>
-
-      {/* Income Pulse Button */}
-      <TouchableOpacity
-        style={styles.pulseButton}
-        onPress={() => router.push("/screens/IncomePulseScreen" as any)}
-      >
-        <Text style={styles.pulseButtonText}>📈 view income pulse</Text>
-      </TouchableOpacity>
-      {/* Goals Button */}
-      <TouchableOpacity
-        style={styles.pulseButton}
-        onPress={() => router.push("/screens/GoalsScreen" as any)}
-      >
-        <Text style={styles.pulseButtonText}>🎯 view goals</Text>
-      </TouchableOpacity>
-      {/* Settings Button */}
-      <TouchableOpacity
-        style={styles.pulseButton}
-        onPress={() => router.push("/screens/SettingsScreen" as any)}
-      >
-        <Text style={styles.pulseButtonText}>⚙️ settings</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }

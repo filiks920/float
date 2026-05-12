@@ -63,11 +63,7 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="AuthScreen" />
-      <Stack.Screen name="screens/HomeScreen" />
-      <Stack.Screen name="screens/BankConnectionScreen" />
-      <Stack.Screen name="screens/IncomePulseScreen" />
-      <Stack.Screen name="screens/GoalsScreen" />
-      <Stack.Screen name="screens/SettingsScreen" />
+      <Stack.Screen name="(tabs)" />
     </Stack>
   );
 }
