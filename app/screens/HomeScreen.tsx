@@ -11,10 +11,7 @@ import {
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { supabase } from "../utils/supabase";
-
-// FLOAT NUMBER CALCULATION
-// Formula: (balance - committed expenses due in 14 days) / days until next income
-// This is the core logic of the entire app
+import BankConnectionScreen from "./BankConnectionScreen";
 
 function calculateFloat(
   balance: number,
@@ -27,13 +24,10 @@ function calculateFloat(
   return Math.floor(available / daysUntilIncome);
 }
 
-// Format numbers as Kenyan Shillings
-// 2450 becomes "KSh 2,450"
 function formatKES(amount: number): string {
   return `KSh ${amount.toLocaleString("en-KE")}`;
 }
 
-// Get greeting based on time of day
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -41,7 +35,6 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-// Get formatted date
 function getDate(): string {
   return new Date().toLocaleDateString("en-KE", {
     weekday: "long",
@@ -51,6 +44,7 @@ function getDate(): string {
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [userName, setUserName] = useState("");
   const [balance, setBalance] = useState(0);
   const [floatNumber, setFloatNumber] = useState(0);
@@ -59,7 +53,7 @@ export default function HomeScreen() {
   const [committedExpenses, setCommittedExpenses] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [hasAccount, setHasAccount] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -87,6 +81,8 @@ export default function HomeScreen() {
         .from("bank_accounts")
         .select("balance")
         .eq("user_id", user.id);
+
+      setHasAccount((accounts?.length || 0) > 0);
 
       const totalBalance =
         accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0;
@@ -122,17 +118,16 @@ export default function HomeScreen() {
           ?.filter((t) => t.type === "credit")
           .reduce((sum, t) => sum + t.amount, 0) || 0;
 
-      const expenses2 =
+      const spent =
         transactions
           ?.filter((t) => t.type === "debit")
           .reduce((sum, t) => sum + t.amount, 0) || 0;
 
       setMonthlyIncome(income);
-      setMonthlyExpenses(expenses2);
+      setMonthlyExpenses(spent);
 
       const dayOfMonth = new Date().getDate();
       const daysUntilIncome = Math.max(30 - dayOfMonth, 1);
-
       const float = calculateFloat(
         totalBalance,
         totalCommitted,
@@ -161,7 +156,6 @@ export default function HomeScreen() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-    router.replace("/authScreen");
   }
 
   if (loading) {
@@ -169,6 +163,17 @@ export default function HomeScreen() {
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>calculating your float...</Text>
       </View>
+    );
+  }
+
+  if (!hasAccount) {
+    return (
+      <BankConnectionScreen
+        onSuccess={() => {
+          setHasAccount(true);
+          loadData();
+        }}
+      />
     );
   }
 
@@ -197,7 +202,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Float Number — Hero Element */}
+      {/* Float Number */}
       <View style={styles.floatCard}>
         <Text style={styles.floatLabel}>your float today</Text>
         <Text style={styles.floatNumber}>{formatKES(floatNumber)}</Text>
@@ -206,7 +211,7 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {/* Income vs Expenses Summary */}
+      {/* Summary Row */}
       <View style={styles.summaryRow}>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>this month in</Text>
@@ -226,7 +231,6 @@ export default function HomeScreen() {
       {/* Committed Expenses */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>committed next 14 days</Text>
-
         {committedExpenses.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>
@@ -276,6 +280,14 @@ export default function HomeScreen() {
           <Text style={styles.balanceLabel}>across all accounts</Text>
         </View>
       </View>
+
+      {/* Income Pulse Button */}
+      <TouchableOpacity
+        style={styles.pulseButton}
+        onPress={() => router.push("/screens/IncomePulseScreen" as any)}
+      >
+        <Text style={styles.pulseButtonText}>📈 view income pulse</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -437,5 +449,19 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textSecondary,
     marginTop: 4,
+  },
+  pulseButton: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 16,
+  },
+  pulseButtonText: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    fontWeight: "600",
   },
 });
