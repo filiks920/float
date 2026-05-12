@@ -163,8 +163,8 @@ export default function GoalsScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>goals</Text>
-        <Text style={styles.subtitle}>what you are saving toward</Text>
+        <Text style={styles.title}>Goals</Text>
+        <Text style={styles.subtitle}>What you are saving toward</Text>
 
         {goals.length === 0 ? (
           <View style={styles.emptyCard}>
@@ -215,7 +215,7 @@ export default function GoalsScreen() {
         style={styles.addButton}
         onPress={() => setModalVisible(true)}
       >
-        <Text style={styles.addButtonText}>+ add goal</Text>
+        <Text style={styles.addButtonText}>+ Add Goal</Text>
       </TouchableOpacity>
 
       {/* Add goal modal */}

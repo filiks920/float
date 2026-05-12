@@ -1,19 +1,6 @@
 import { Tabs } from "expo-router";
-import { Text, View } from "react-native";
+import { BarChart2, Home, Lightbulb, User } from "lucide-react-native";
 import { Colors } from "../constants/colors";
-
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return (
-    <View
-      style={{
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Text style={{ fontSize: 20 }}>{emoji}</Text>
-    </View>
-  );
-}
 
 export default function TabLayout() {
   return (
@@ -24,9 +11,9 @@ export default function TabLayout() {
           backgroundColor: Colors.background,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          paddingBottom: 8,
+          paddingBottom: 24,
           paddingTop: 4,
-          height: 60,
+          height: 80,
         },
         tabBarActiveTintColor: Colors.accent,
         tabBarInactiveTintColor: Colors.textMuted,
@@ -41,28 +28,32 @@ export default function TabLayout() {
         name="home"
         options={{
           title: "Home",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="pulse"
         options={{
           title: "Activity",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
+          tabBarIcon: ({ color, size }) => (
+            <BarChart2 color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
         name="goals"
         options={{
           title: "Insights",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💡" focused={focused} />,
+          tabBarIcon: ({ color, size }) => (
+            <Lightbulb color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "Profile",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
     </Tabs>

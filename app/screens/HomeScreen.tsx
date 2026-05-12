@@ -307,7 +307,7 @@ export default function HomeScreen() {
           },
         ]}
       >
-        <Text style={styles.yesterdayIcon}>📈</Text>
+        <Text style={styles.yesterdayIcon}></Text>
         <View>
           <Text style={styles.yesterdayText}>
             Yesterday you used:{" "}

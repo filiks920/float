@@ -98,7 +98,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>settings</Text>
+      <Text style={styles.title}>Settings</Text>
 
       {/* Profile Section */}
       <View style={styles.section}>
@@ -199,7 +199,7 @@ export default function SettingsScreen() {
 
       {/* Sign out */}
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>sign out</Text>
+        <Text style={styles.signOutText}>Sign out</Text>
       </TouchableOpacity>
 
       {/* Delete account */}
@@ -207,7 +207,7 @@ export default function SettingsScreen() {
         style={styles.deleteButton}
         onPress={handleDeleteAccount}
       >
-        <Text style={styles.deleteText}>delete account</Text>
+        <Text style={styles.deleteText}>Delete account</Text>
       </TouchableOpacity>
     </ScrollView>
   );

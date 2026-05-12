@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { supabase } from "../utils/supabase";
@@ -112,8 +107,8 @@ export default function IncomePulseScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
-      <Text style={styles.title}>income pulse</Text>
-      <Text style={styles.subtitle}>your earning pattern over 4 weeks</Text>
+      <Text style={styles.title}>Income pulse</Text>
+      <Text style={styles.subtitle}>Your earning pattern over 4 weeks</Text>
 
       {/* Dry spell warning */}
       {drySpellWarning && (
@@ -170,16 +165,16 @@ export default function IncomePulseScreen() {
 
       {/* Next income estimate */}
       <View style={styles.estimateCard}>
-        <Text style={styles.estimateLabel}>estimated next week</Text>
+        <Text style={styles.estimateLabel}>Estimated next week</Text>
         <Text style={styles.estimateAmount}>
           {formatKES(nextIncomeEstimate)}
         </Text>
-        <Text style={styles.estimateNote}>based on your 4-week average</Text>
+        <Text style={styles.estimateNote}>Based on your 4-week average</Text>
       </View>
 
       {/* Income tips */}
       <View style={styles.tipsCard}>
-        <Text style={styles.tipsTitle}>what this means</Text>
+        <Text style={styles.tipsTitle}>What this means</Text>
         <Text style={styles.tipsText}>
           Your float number is calculated using these income patterns. More
           consistent income = more accurate float.
