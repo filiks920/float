@@ -288,6 +288,13 @@ export default function HomeScreen() {
       >
         <Text style={styles.pulseButtonText}>📈 view income pulse</Text>
       </TouchableOpacity>
+      {/* Goals Button */}
+      <TouchableOpacity
+        style={styles.pulseButton}
+        onPress={() => router.push("/screens/GoalsScreen" as any)}
+      >
+        <Text style={styles.pulseButtonText}>🎯 view goals</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
