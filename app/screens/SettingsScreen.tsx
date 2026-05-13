@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Modal,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -18,12 +20,18 @@ interface Profile {
   currency: string;
 }
 
+const CURRENCIES = ["KES", "USD", "GBP", "EUR", "UGX", "TZS"];
+
 export default function SettingsScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -41,10 +49,56 @@ export default function SettingsScreen() {
         .eq("id", user.id)
         .single();
       setProfile(data);
+      setEditedName(data?.full_name || "");
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function saveName() {
+    if (!editedName.trim()) {
+      Alert.alert("Error", "Name cannot be empty");
+      return;
+    }
+    setSaving(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ full_name: editedName.trim() })
+        .eq("id", user.id);
+      if (error) throw error;
+      setProfile((prev) =>
+        prev ? { ...prev, full_name: editedName.trim() } : prev,
+      );
+      setEditModalVisible(false);
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveCurrency(currency: string) {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ currency })
+        .eq("id", user.id);
+      if (error) throw error;
+      setProfile((prev) => (prev ? { ...prev, currency } : prev));
+      setCurrencyModalVisible(false);
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
     }
   }
 
@@ -97,21 +151,36 @@ export default function SettingsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Profile</Text>
 
-      {/* Profile */}
+      {/* Account */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>ACCOUNT</Text>
         <View style={styles.card}>
-          <View style={styles.row}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => {
+              setEditedName(profile?.full_name || "");
+              setEditModalVisible(true);
+            }}
+          >
             <Text style={styles.rowLabel}>Name</Text>
-            <Text style={styles.rowValue}>
-              {profile?.full_name || "Not set"}
-            </Text>
-          </View>
+            <View style={styles.rowRight}>
+              <Text style={styles.rowValue}>
+                {profile?.full_name || "Not set"}
+              </Text>
+              <Text style={styles.editHint}>Edit</Text>
+            </View>
+          </TouchableOpacity>
           <View style={styles.divider} />
-          <View style={styles.row}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => setCurrencyModalVisible(true)}
+          >
             <Text style={styles.rowLabel}>Currency</Text>
-            <Text style={styles.rowValue}>{profile?.currency || "KES"}</Text>
-          </View>
+            <View style={styles.rowRight}>
+              <Text style={styles.rowValue}>{profile?.currency || "KES"}</Text>
+              <Text style={styles.editHint}>Edit</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -130,7 +199,7 @@ export default function SettingsScreen() {
                 setDarkMode(val);
                 Alert.alert(
                   "Coming soon",
-                  "Full dark mode support is coming in the next update.",
+                  "Dark mode is coming in the next update.",
                 );
               }}
               trackColor={{ false: Colors.border, true: Colors.accent }}
@@ -162,7 +231,9 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View>
               <Text style={styles.rowLabel}>Auto lock</Text>
-              <Text style={styles.rowSub}>Locks when app backgrounds</Text>
+              <Text style={styles.rowSub}>
+                Locks when app goes to background
+              </Text>
             </View>
             <Text style={styles.badge}>Always on</Text>
           </View>
@@ -219,6 +290,87 @@ export default function SettingsScreen() {
       <TouchableOpacity onPress={handleDeleteAccount}>
         <Text style={styles.deleteText}>Delete account</Text>
       </TouchableOpacity>
+
+      {/* Edit Name Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.handle} />
+            <Text style={styles.modalTitle}>Edit name</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editedName}
+              onChangeText={setEditedName}
+              placeholder="Your full name"
+              placeholderTextColor={Colors.textMuted}
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.modalBtn, saving && { opacity: 0.6 }]}
+              onPress={saveName}
+              disabled={saving}
+            >
+              <Text style={styles.modalBtnText}>
+                {saving ? "Saving..." : "Save"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setEditModalVisible(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Currency Picker Modal */}
+      <Modal
+        visible={currencyModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCurrencyModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.handle} />
+            <Text style={styles.modalTitle}>Select currency</Text>
+            {CURRENCIES.map((c) => (
+              <TouchableOpacity
+                key={c}
+                style={[
+                  styles.currencyOption,
+                  profile?.currency === c && styles.currencyOptionActive,
+                ]}
+                onPress={() => saveCurrency(c)}
+              >
+                <Text
+                  style={[
+                    styles.currencyText,
+                    profile?.currency === c && styles.currencyTextActive,
+                  ]}
+                >
+                  {c}
+                </Text>
+                {profile?.currency === c && (
+                  <Text style={styles.currencyCheck}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setCurrencyModalVisible(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -273,6 +425,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 14,
   },
+  rowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   divider: {
     height: 1,
     backgroundColor: Colors.border,
@@ -290,6 +447,11 @@ const styles = StyleSheet.create({
   rowValue: {
     ...Typography.body,
     color: Colors.textSecondary,
+  },
+  editHint: {
+    fontSize: 12,
+    color: Colors.accent,
+    fontWeight: "600",
   },
   badge: {
     fontSize: 12,
@@ -319,5 +481,87 @@ const styles = StyleSheet.create({
     color: Colors.critical,
     textAlign: "center",
     padding: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "#00000066",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+    gap: 12,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 8,
+  },
+  modalTitle: {
+    ...Typography.title,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  modalInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 14,
+    fontSize: 15,
+    color: Colors.textPrimary,
+  },
+  modalBtn: {
+    backgroundColor: Colors.accent,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+  },
+  modalBtnText: {
+    color: Colors.background,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  cancelBtn: {
+    alignItems: "center",
+    padding: 8,
+  },
+  cancelText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+  },
+  currencyOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  currencyOptionActive: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentLight,
+  },
+  currencyText: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    fontWeight: "500",
+  },
+  currencyTextActive: {
+    color: Colors.accent,
+    fontWeight: "700",
+  },
+  currencyCheck: {
+    color: Colors.accent,
+    fontWeight: "700",
+    fontSize: 16,
   },
 });

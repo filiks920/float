@@ -421,7 +421,7 @@ export default function HomeScreen() {
         style={styles.fab}
         onPress={() => setShowAddTransaction(true)}
       >
-        <Text style={styles.fabText}>+ Log spend</Text>
+        <Text style={styles.fabText}>Log spend</Text>
       </TouchableOpacity>
 
       {/* Modals */}

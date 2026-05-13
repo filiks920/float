@@ -1,21 +1,17 @@
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { supabase } from "../utils/supabase";
-
-// A goal has a name, target amount, and current amount
-// Progress bar shows how close user is to goal
-// Float tells user how many days to reach goal
 
 interface Goal {
   id: string;
@@ -28,10 +24,25 @@ interface Goal {
 export default function GoalsScreen() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [floatNumber, setFloatNumber] = useState(0);
+
+  // Add goal modal
+  const [addModalVisible, setAddModalVisible] = useState(false);
   const [goalName, setGoalName] = useState("");
   const [goalAmount, setGoalAmount] = useState("");
-  const [floatNumber, setFloatNumber] = useState(0);
+
+  // Add money modal
+  const [addMoneyModalVisible, setAddMoneyModalVisible] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [addMoneyAmount, setAddMoneyAmount] = useState("");
+
+  // Edit modal
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadGoals();
@@ -52,7 +63,6 @@ export default function GoalsScreen() {
 
       setGoals(data || []);
 
-      // Get float number for days-to-goal calculation
       const { data: accounts } = await supabase
         .from("bank_accounts")
         .select("balance")
@@ -71,7 +81,6 @@ export default function GoalsScreen() {
         .lte("due_date", fourteenDaysFromNow.toISOString());
 
       const committed = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
-
       const dayOfMonth = new Date().getDate();
       const daysUntilIncome = Math.max(30 - dayOfMonth, 1);
       const available = balance - committed;
@@ -89,34 +98,85 @@ export default function GoalsScreen() {
       Alert.alert("Error", "Fill in all fields");
       return;
     }
-
     const amount = parseFloat(goalAmount);
     if (isNaN(amount) || amount <= 0) {
       Alert.alert("Error", "Enter a valid amount");
       return;
     }
-
+    setSaving(true);
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-
       const { error } = await supabase.from("goals").insert({
         user_id: user.id,
         name: goalName,
         target_amount: amount,
         current_amount: 0,
       });
-
       if (error) throw error;
-
       setGoalName("");
       setGoalAmount("");
-      setModalVisible(false);
+      setAddModalVisible(false);
       loadGoals();
     } catch (error: any) {
       Alert.alert("Error", error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addMoneyToGoal() {
+    if (!selectedGoal || !addMoneyAmount) return;
+    const amount = parseFloat(addMoneyAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Error", "Enter a valid amount");
+      return;
+    }
+    setSaving(true);
+    try {
+      const newAmount = selectedGoal.current_amount + amount;
+      const { error } = await supabase
+        .from("goals")
+        .update({ current_amount: newAmount })
+        .eq("id", selectedGoal.id);
+      if (error) throw error;
+      setAddMoneyAmount("");
+      setAddMoneyModalVisible(false);
+      setSelectedGoal(null);
+      loadGoals();
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveEdit() {
+    if (!editingGoal || !editName || !editAmount) {
+      Alert.alert("Error", "Fill in all fields");
+      return;
+    }
+    const amount = parseFloat(editAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Error", "Enter a valid amount");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("goals")
+        .update({ name: editName, target_amount: amount })
+        .eq("id", editingGoal.id);
+      if (error) throw error;
+      setEditModalVisible(false);
+      setEditingGoal(null);
+      loadGoals();
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -134,20 +194,18 @@ export default function GoalsScreen() {
     ]);
   }
 
-  // How many days at current float to reach goal
   function daysToGoal(remaining: number): string {
-    if (floatNumber <= 0) return "increase your float first";
+    if (remaining <= 0) return "Goal reached! 🎉";
+    if (floatNumber <= 0) return "Increase your float first";
     const days = Math.ceil(remaining / floatNumber);
-    if (days <= 0) return "goal reached!";
     if (days === 1) return "1 day at your current float";
     return `${days} days at your current float`;
   }
 
   function formatKES(amount: number): string {
-    return `KSh ${amount.toLocaleString("en-KE")}`;
+    return `KSh ${Math.round(amount).toLocaleString("en-KE")}`;
   }
 
-  // Progress percentage capped at 100
   function progress(current: number, target: number): number {
     return Math.min((current / target) * 100, 100);
   }
@@ -177,58 +235,119 @@ export default function GoalsScreen() {
           goals.map((goal) => {
             const remaining = goal.target_amount - goal.current_amount;
             const pct = progress(goal.current_amount, goal.target_amount);
+            const isComplete = remaining <= 0;
             return (
-              <TouchableOpacity
-                key={goal.id}
-                style={styles.goalCard}
-                onLongPress={() => deleteGoal(goal.id)}
-              >
+              <View key={goal.id} style={styles.goalCard}>
+                {/* Goal header */}
                 <View style={styles.goalHeader}>
                   <Text style={styles.goalName}>{goal.name}</Text>
-                  <Text style={styles.goalAmount}>
-                    {formatKES(goal.current_amount)} /{" "}
-                    {formatKES(goal.target_amount)}
-                  </Text>
+                  <View style={styles.goalActions}>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => {
+                        setEditingGoal(goal);
+                        setEditName(goal.name);
+                        setEditAmount(goal.target_amount.toString());
+                        setEditModalVisible(true);
+                      }}
+                    >
+                      <Text style={styles.actionBtnText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionBtnDanger}
+                      onPress={() => deleteGoal(goal.id)}
+                    >
+                      <Text style={styles.actionBtnDangerText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
+
+                {/* Amounts */}
+                <Text style={styles.goalAmount}>
+                  {formatKES(goal.current_amount)}{" "}
+                  <Text style={styles.goalAmountTarget}>
+                    / {formatKES(goal.target_amount)}
+                  </Text>
+                </Text>
 
                 {/* Progress bar */}
                 <View style={styles.progressTrack}>
                   <View
-                    style={[styles.progressFill, { width: `${pct}%` as any }]}
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${pct}%` as any,
+                        backgroundColor: isComplete
+                          ? Colors.safe
+                          : Colors.accent,
+                      },
+                    ]}
                   />
                 </View>
 
+                {/* Footer */}
                 <View style={styles.goalFooter}>
-                  <Text style={styles.goalPct}>
+                  <Text
+                    style={[
+                      styles.goalPct,
+                      { color: isComplete ? Colors.safe : Colors.accent },
+                    ]}
+                  >
                     {Math.round(pct)}% complete
                   </Text>
                   <Text style={styles.goalDays}>{daysToGoal(remaining)}</Text>
                 </View>
-              </TouchableOpacity>
+
+                {/* Add money button */}
+                {!isComplete && (
+                  <TouchableOpacity
+                    style={styles.addMoneyBtn}
+                    onPress={() => {
+                      setSelectedGoal(goal);
+                      setAddMoneyAmount("");
+                      setAddMoneyModalVisible(true);
+                    }}
+                  >
+                    <Text style={styles.addMoneyBtnText}>+ Add money</Text>
+                  </TouchableOpacity>
+                )}
+
+                {isComplete && (
+                  <View style={styles.completeBadge}>
+                    <Text style={styles.completeBadgeText}>
+                      🎉 Goal reached!
+                    </Text>
+                  </View>
+                )}
+              </View>
             );
           })
         )}
       </ScrollView>
 
-      {/* Add goal button */}
+      {/* Add goal FAB */}
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => setModalVisible(true)}
+        onPress={() => {
+          setGoalName("");
+          setGoalAmount("");
+          setAddModalVisible(true);
+        }}
       >
         <Text style={styles.addButtonText}>+ Add Goal</Text>
       </TouchableOpacity>
 
-      {/* Add goal modal */}
+      {/* Add Goal Modal */}
       <Modal
-        visible={modalVisible}
+        visible={addModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => setAddModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>new goal</Text>
-
+          <View style={styles.modalSheet}>
+            <View style={styles.handle} />
+            <Text style={styles.modalTitle}>New goal</Text>
             <TextInput
               style={styles.input}
               placeholder="Goal name (e.g. New laptop)"
@@ -236,7 +355,6 @@ export default function GoalsScreen() {
               value={goalName}
               onChangeText={setGoalName}
             />
-
             <TextInput
               style={styles.input}
               placeholder="Target amount (KSh)"
@@ -245,16 +363,110 @@ export default function GoalsScreen() {
               onChangeText={setGoalAmount}
               keyboardType="numeric"
             />
-
-            <TouchableOpacity style={styles.modalButton} onPress={addGoal}>
-              <Text style={styles.modalButtonText}>save goal</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setModalVisible(false)}
+              style={[styles.modalBtn, saving && { opacity: 0.6 }]}
+              onPress={addGoal}
+              disabled={saving}
             >
-              <Text style={styles.cancelText}>cancel</Text>
+              <Text style={styles.modalBtnText}>
+                {saving ? "Saving..." : "Save goal"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setAddModalVisible(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Money Modal */}
+      <Modal
+        visible={addMoneyModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAddMoneyModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.handle} />
+            <Text style={styles.modalTitle}>
+              Add money to {selectedGoal?.name}
+            </Text>
+            <Text style={styles.modalSubtitle}>
+              Current: {formatKES(selectedGoal?.current_amount || 0)} /{" "}
+              {formatKES(selectedGoal?.target_amount || 0)}
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Amount to add (KSh)"
+              placeholderTextColor={Colors.textMuted}
+              value={addMoneyAmount}
+              onChangeText={setAddMoneyAmount}
+              keyboardType="numeric"
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.modalBtn, saving && { opacity: 0.6 }]}
+              onPress={addMoneyToGoal}
+              disabled={saving}
+            >
+              <Text style={styles.modalBtnText}>
+                {saving ? "Saving..." : "Add money"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setAddMoneyModalVisible(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Goal Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.handle} />
+            <Text style={styles.modalTitle}>Edit goal</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Goal name"
+              placeholderTextColor={Colors.textMuted}
+              value={editName}
+              onChangeText={setEditName}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Target amount (KSh)"
+              placeholderTextColor={Colors.textMuted}
+              value={editAmount}
+              onChangeText={setEditAmount}
+              keyboardType="numeric"
+            />
+            <TouchableOpacity
+              style={[styles.modalBtn, saving && { opacity: 0.6 }]}
+              onPress={saveEdit}
+              disabled={saving}
+            >
+              <Text style={styles.modalBtnText}>
+                {saving ? "Saving..." : "Save changes"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setEditModalVisible(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -321,21 +533,55 @@ const styles = StyleSheet.create({
   goalName: {
     ...Typography.subtitle,
     color: Colors.textPrimary,
+    flex: 1,
+  },
+  goalActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  actionBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+  },
+  actionBtnText: {
+    fontSize: 12,
+    color: Colors.accent,
+    fontWeight: "600",
+  },
+  actionBtnDanger: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.critical,
+  },
+  actionBtnDangerText: {
+    fontSize: 12,
+    color: Colors.critical,
+    fontWeight: "600",
   },
   goalAmount: {
-    ...Typography.caption,
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  goalAmountTarget: {
+    fontSize: 14,
+    fontWeight: "400",
     color: Colors.textSecondary,
   },
   progressTrack: {
-    height: 6,
-    backgroundColor: Colors.surfaceRaised,
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: Colors.border,
+    borderRadius: 4,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: Colors.accent,
-    borderRadius: 3,
+    borderRadius: 4,
   },
   goalFooter: {
     flexDirection: "row",
@@ -343,11 +589,35 @@ const styles = StyleSheet.create({
   },
   goalPct: {
     ...Typography.caption,
-    color: Colors.accent,
+    fontWeight: "600",
   },
   goalDays: {
     ...Typography.caption,
     color: Colors.textMuted,
+  },
+  addMoneyBtn: {
+    backgroundColor: Colors.accentLight,
+    borderRadius: 10,
+    padding: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.accent,
+  },
+  addMoneyBtnText: {
+    color: Colors.accent,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  completeBadge: {
+    backgroundColor: Colors.safeLight,
+    borderRadius: 10,
+    padding: 12,
+    alignItems: "center",
+  },
+  completeBadgeText: {
+    color: Colors.safe,
+    fontSize: 14,
+    fontWeight: "600",
   },
   addButton: {
     position: "absolute",
@@ -366,48 +636,61 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "#000000aa",
+    backgroundColor: "#00000066",
     justifyContent: "flex-end",
   },
-  modalCard: {
-    backgroundColor: Colors.surface,
+  modalSheet: {
+    backgroundColor: Colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
+    paddingBottom: 40,
     gap: 12,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 8,
   },
   modalTitle: {
     ...Typography.title,
     color: Colors.textPrimary,
-    marginBottom: 8,
+  },
+  modalSubtitle: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: -4,
   },
   input: {
-    backgroundColor: Colors.surfaceRaised,
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 12,
-    padding: 16,
-    color: Colors.textPrimary,
+    padding: 14,
     fontSize: 15,
+    color: Colors.textPrimary,
   },
-  modalButton: {
+  modalBtn: {
     backgroundColor: Colors.accent,
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
     marginTop: 4,
   },
-  modalButtonText: {
+  modalBtnText: {
     color: Colors.background,
     fontSize: 16,
     fontWeight: "700",
   },
-  cancelButton: {
+  cancelBtn: {
     alignItems: "center",
-    padding: 12,
+    padding: 8,
   },
   cancelText: {
+    ...Typography.body,
     color: Colors.textSecondary,
-    fontSize: 15,
   },
 });
