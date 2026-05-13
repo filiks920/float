@@ -1,3 +1,11 @@
+import {
+  AlertOctagon,
+  AlertTriangle,
+  Bell,
+  Pencil,
+  RefreshCw,
+  Shield,
+} from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   RefreshControl,
@@ -12,11 +20,6 @@ import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { supabase } from "../utils/supabase";
 import BankConnectionScreen from "./BankConnectionScreen";
-
-// FLOAT STATE: determines color theme
-// Safe: float > dailyBasics * daysToStaySafe
-// Caution: float > 0 but running low
-// Critical: float <= 0 or very low
 
 type FloatState = "safe" | "caution" | "critical";
 
@@ -51,12 +54,6 @@ function getStateMessage(state: FloatState, days: number): string {
   return `You may run out tomorrow.\nReduce spending or get money in soon.`;
 }
 
-function getStateIcon(state: FloatState): string {
-  if (state === "safe") return "🛡️";
-  if (state === "caution") return "⚠️";
-  return "🚨";
-}
-
 function formatKES(amount: number): string {
   return `KSh ${Math.round(amount).toLocaleString("en-KE")}`;
 }
@@ -73,6 +70,7 @@ function calculateFloat(
 
 export default function HomeScreen() {
   const [userName, setUserName] = useState("");
+  const [userId, setUserId] = useState("");
   const [balance, setBalance] = useState(0);
   const [floatNumber, setFloatNumber] = useState(0);
   const [yesterdaySpend, setYesterdaySpend] = useState(0);
@@ -88,7 +86,6 @@ export default function HomeScreen() {
     loadData();
   }, []);
 
-  // Recalculate float state when relevant values change
   useEffect(() => {
     const state = getFloatState(floatNumber, dailyBasics, daysToStaySafe);
     setFloatState(state);
@@ -101,7 +98,8 @@ export default function HomeScreen() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Profile
+      setUserId(user.id);
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name")
@@ -112,7 +110,6 @@ export default function HomeScreen() {
         setUserName(profile.full_name?.split(" ")[0] || "there");
       }
 
-      // Accounts
       const { data: accounts } = await supabase
         .from("bank_accounts")
         .select("balance")
@@ -124,7 +121,6 @@ export default function HomeScreen() {
         accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0;
       setBalance(totalBalance);
 
-      // Committed expenses next 14 days
       const fourteenDays = new Date();
       fourteenDays.setDate(fourteenDays.getDate() + 14);
 
@@ -140,7 +136,6 @@ export default function HomeScreen() {
       const totalCommitted =
         expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
 
-      // Yesterday spend
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(0, 0, 0, 0);
@@ -158,7 +153,6 @@ export default function HomeScreen() {
       const ySpend = yesterdayTx?.reduce((sum, t) => sum + t.amount, 0) || 0;
       setYesterdaySpend(ySpend);
 
-      // Calculate float
       const dayOfMonth = new Date().getDate();
       const daysUntilIncome = Math.max(30 - dayOfMonth, 1);
       const float = calculateFloat(
@@ -195,6 +189,7 @@ export default function HomeScreen() {
   if (!hasAccount) {
     return (
       <BankConnectionScreen
+        userId={userId}
         onSuccess={() => {
           setHasAccount(true);
           loadData();
@@ -206,8 +201,13 @@ export default function HomeScreen() {
   const stateColor = getStateColor(floatState);
   const stateBg = getStateBg(floatState);
   const stateMessage = getStateMessage(floatState, daysToStaySafe);
-  const stateIcon = getStateIcon(floatState);
   const isOnTrack = yesterdaySpend <= dailyBasics;
+  const StateIcon =
+    floatState === "safe"
+      ? Shield
+      : floatState === "caution"
+        ? AlertTriangle
+        : AlertOctagon;
 
   return (
     <ScrollView
@@ -229,13 +229,13 @@ export default function HomeScreen() {
           <View style={styles.balanceRow}>
             <Text style={styles.balanceAmount}>{formatKES(balance)}</Text>
             <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-              <Text style={styles.refreshIcon}>⟳</Text>
+              <RefreshCw size={16} color={Colors.textSecondary} />
             </TouchableOpacity>
           </View>
           <Text style={styles.updatedText}>Updated just now</Text>
         </View>
         <TouchableOpacity onPress={handleSignOut}>
-          <Text style={styles.bellIcon}>🔔</Text>
+          <Bell size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -252,7 +252,7 @@ export default function HomeScreen() {
 
       {/* State message card */}
       <View style={[styles.stateCard, { backgroundColor: stateBg }]}>
-        <Text style={styles.stateIcon}>{stateIcon}</Text>
+        <StateIcon size={20} color={stateColor} />
         <Text style={[styles.stateMessage, { color: stateColor }]}>
           {stateMessage}
         </Text>
@@ -293,7 +293,7 @@ export default function HomeScreen() {
             selectTextOnFocus
           />
           <TouchableOpacity>
-            <Text style={styles.editIcon}>✏️</Text>
+            <Pencil size={16} color={Colors.textMuted} />
           </TouchableOpacity>
         </View>
       </View>
@@ -329,8 +329,8 @@ export default function HomeScreen() {
             {yesterdaySpend === 0
               ? "No spend recorded yet"
               : isOnTrack
-                ? "You're on track 👍"
-                : "Spending a bit high 😅"}
+                ? "You're on track"
+                : "Spending a bit high"}
           </Text>
         </View>
       </View>
@@ -387,17 +387,10 @@ const styles = StyleSheet.create({
   refreshBtn: {
     padding: 4,
   },
-  refreshIcon: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-  },
   updatedText: {
     ...Typography.label,
     color: Colors.textMuted,
     marginTop: 2,
-  },
-  bellIcon: {
-    fontSize: 22,
   },
   floatHero: {
     alignItems: "center",
@@ -424,9 +417,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     gap: 10,
-  },
-  stateIcon: {
-    fontSize: 20,
   },
   stateMessage: {
     ...Typography.body,
@@ -482,9 +472,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.textPrimary,
     fontWeight: "500",
-  },
-  editIcon: {
-    fontSize: 16,
   },
   yesterdayCard: {
     flexDirection: "row",

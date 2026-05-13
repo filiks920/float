@@ -1,11 +1,14 @@
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
@@ -13,19 +16,37 @@ import { supabase } from "../utils/supabase";
 
 export default function BankConnectionScreen({
   onSuccess,
+  userId,
 }: {
   onSuccess: () => void;
+  userId: string;
 }) {
   const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState("");
 
-  async function handleConnectBank() {
+  async function handleManualEntry() {
+    const amount = parseInt(balance.replace(/[^0-9]/g, ""));
+    if (!amount || amount <= 0) {
+      Alert.alert("Error", "Please enter a valid balance");
+      return;
+    }
+
     setLoading(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not logged in");
-      await addTestData(user.id);
+      const { data: account } = await supabase
+        .from("bank_accounts")
+        .insert({
+          user_id: userId,
+          account_name: "M-Pesa",
+          account_type: "mobile_money",
+          balance: amount,
+          currency: "KES",
+          last_synced: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (!account) throw new Error("Could not save balance");
       onSuccess();
     } catch (error: any) {
       Alert.alert("Error", error.message);
@@ -34,161 +55,113 @@ export default function BankConnectionScreen({
     }
   }
 
-  async function addTestData(userId: string) {
-    const { data: account } = await supabase
-      .from("bank_accounts")
-      .insert({
-        user_id: userId,
-        account_name: "KCB M-Pesa",
-        account_type: "mobile_money",
-        balance: 15000,
-        currency: "KES",
-        last_synced: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (!account) return;
-
-    const now = new Date();
-    await supabase.from("transactions").insert([
-      {
-        user_id: userId,
-        account_id: account.id,
-        amount: 12000,
-        type: "credit",
-        category: "salary",
-        description: "Monthly salary",
-        date: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
-      },
-      {
-        user_id: userId,
-        account_id: account.id,
-        amount: 3500,
-        type: "debit",
-        category: "food",
-        description: "Groceries",
-        date: new Date(now.getFullYear(), now.getMonth(), 5).toISOString(),
-      },
-      {
-        user_id: userId,
-        account_id: account.id,
-        amount: 2000,
-        type: "debit",
-        category: "transport",
-        description: "Uber rides",
-        date: new Date(now.getFullYear(), now.getMonth(), 8).toISOString(),
-      },
-    ]);
-
-    await supabase.from("committed_expenses").insert([
-      {
-        user_id: userId,
-        name: "Rent",
-        amount: 8000,
-        due_date: new Date(
-          now.getFullYear(),
-          now.getMonth() + 1,
-          1,
-        ).toISOString(),
-        recurring: true,
-        recurrence_period: "monthly",
-      },
-      {
-        user_id: userId,
-        name: "Netflix",
-        amount: 1100,
-        due_date: new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate() + 5,
-        ).toISOString(),
-        recurring: true,
-        recurrence_period: "monthly",
-      },
-    ]);
-  }
-
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <View style={styles.content}>
-        <Text style={styles.title}>connect your account</Text>
-        <Text style={styles.subtitle}>
-          Float needs your balance and transactions to calculate your daily
-          float number
-        </Text>
-        <View style={styles.securityNote}>
-          <Text style={styles.securityText}>
-            🔒 Your credentials are never stored. We use bank-grade encryption.
+        <View style={styles.topSection}>
+          <Text style={styles.title}>What's your balance?</Text>
+          <Text style={styles.subtitle}>
+            Enter your current M-Pesa or bank balance to get your float number
           </Text>
         </View>
+
+        <View style={styles.inputSection}>
+          <Text style={styles.currencyLabel}>KES</Text>
+          <TextInput
+            style={styles.balanceInput}
+            placeholder="0"
+            placeholderTextColor={Colors.textMuted}
+            value={balance}
+            onChangeText={(text) => {
+              const num = text.replace(/[^0-9]/g, "");
+              setBalance(num);
+            }}
+            keyboardType="numeric"
+            autoFocus
+          />
+        </View>
+
+        <Text style={styles.hint}>
+          You can update this anytime by pulling down to refresh
+        </Text>
+
         <TouchableOpacity
-          style={styles.button}
-          onPress={handleConnectBank}
-          disabled={loading}
+          style={[styles.button, !balance && styles.buttonDisabled]}
+          onPress={handleManualEntry}
+          disabled={loading || !balance}
         >
           {loading ? (
             <ActivityIndicator color={Colors.background} />
           ) : (
-            <Text style={styles.buttonText}>connect M-Pesa / bank</Text>
+            <Text style={styles.buttonText}>Set my balance</Text>
           )}
         </TouchableOpacity>
-        <Text style={styles.skipText}>
-          We support KCB, Equity, Co-op, M-Pesa and more
-        </Text>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Colors.background,
   },
   content: {
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
-    gap: 16,
+    gap: 24,
+  },
+  topSection: {
+    gap: 8,
   },
   title: {
     ...Typography.title,
     color: Colors.textPrimary,
-    textAlign: "center",
   },
   subtitle: {
     ...Typography.body,
     color: Colors.textSecondary,
-    textAlign: "center",
   },
-  securityNote: {
-    backgroundColor: Colors.accentLight,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.accent,
+  inputSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.accent,
+    paddingBottom: 8,
+    gap: 8,
   },
-  securityText: {
-    ...Typography.body,
-    color: Colors.accent,
-    textAlign: "center",
+  currencyLabel: {
+    fontSize: 28,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  balanceInput: {
+    flex: 1,
+    fontSize: 48,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    letterSpacing: -1,
+  },
+  hint: {
+    ...Typography.caption,
+    color: Colors.textMuted,
   },
   button: {
     backgroundColor: Colors.accent,
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
-    marginTop: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.4,
   },
   buttonText: {
     color: Colors.background,
     fontSize: 16,
     fontWeight: "700",
-  },
-  skipText: {
-    ...Typography.caption,
-    color: Colors.textMuted,
-    textAlign: "center",
   },
 });
