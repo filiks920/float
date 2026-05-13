@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 import AddExpenseModal from "../components/AddExpenseModal";
+import AddTransactionModal from "../components/AddTransactionModal";
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { useExpenses } from "../hooks/useExpenses";
@@ -91,6 +92,7 @@ export default function HomeScreen() {
   const [hasAccount, setHasAccount] = useState(false);
   const [floatState, setFloatState] = useState<FloatState>("safe");
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showAddTransaction, setShowAddTransaction] = useState(false);
 
   const { expenses, addExpense, deleteExpense } = useExpenses(userId);
 
@@ -220,215 +222,236 @@ export default function HomeScreen() {
         : AlertOctagon;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={Colors.accent}
-        />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.appName}>Float</Text>
-          <Text style={styles.balanceLabel}>Balance</Text>
-          <View style={styles.balanceRow}>
-            <Text style={styles.balanceAmount}>{formatKES(balance)}</Text>
-            <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-              <RefreshCw size={16} color={Colors.textSecondary} />
+    <View style={styles.wrapper}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.accent}
+          />
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.appName}>Float</Text>
+            <Text style={styles.balanceLabel}>Balance</Text>
+            <View style={styles.balanceRow}>
+              <Text style={styles.balanceAmount}>{formatKES(balance)}</Text>
+              <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
+                <RefreshCw size={16} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.updatedText}>Updated just now</Text>
+          </View>
+          <TouchableOpacity onPress={handleSignOut}>
+            <Bell size={22} color={Colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Float Number Hero */}
+        <View style={styles.floatHero}>
+          <Text style={[styles.safelyUseLabel, { color: stateColor }]}>
+            You can safely use
+          </Text>
+          <Text style={[styles.floatNumber, { color: stateColor }]}>
+            {formatKES(floatNumber)}
+          </Text>
+          <Text style={[styles.todayLabel, { color: stateColor }]}>today</Text>
+        </View>
+
+        {/* State card */}
+        <View style={[styles.stateCard, { backgroundColor: stateBg }]}>
+          <StateIcon size={20} color={stateColor} />
+          <Text style={[styles.stateMessage, { color: stateColor }]}>
+            {stateMessage}
+          </Text>
+        </View>
+
+        {/* Days to stay safe */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Days to stay safe</Text>
+          <View style={styles.stepper}>
+            <TouchableOpacity
+              style={styles.stepperBtn}
+              onPress={() => setDaysToStaySafe(Math.max(1, daysToStaySafe - 1))}
+            >
+              <Text style={styles.stepperBtnText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.stepperValue}>{daysToStaySafe} days</Text>
+            <TouchableOpacity
+              style={styles.stepperBtn}
+              onPress={() => setDaysToStaySafe(daysToStaySafe + 1)}
+            >
+              <Text style={styles.stepperBtnText}>+</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.updatedText}>Updated just now</Text>
-        </View>
-        <TouchableOpacity onPress={handleSignOut}>
-          <Bell size={22} color={Colors.textPrimary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Float Number Hero */}
-      <View style={styles.floatHero}>
-        <Text style={[styles.safelyUseLabel, { color: stateColor }]}>
-          You can safely use
-        </Text>
-        <Text style={[styles.floatNumber, { color: stateColor }]}>
-          {formatKES(floatNumber)}
-        </Text>
-        <Text style={[styles.todayLabel, { color: stateColor }]}>today</Text>
-      </View>
-
-      {/* State card */}
-      <View style={[styles.stateCard, { backgroundColor: stateBg }]}>
-        <StateIcon size={20} color={stateColor} />
-        <Text style={[styles.stateMessage, { color: stateColor }]}>
-          {stateMessage}
-        </Text>
-      </View>
-
-      {/* Days to stay safe */}
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Days to stay safe</Text>
-        <View style={styles.stepper}>
-          <TouchableOpacity
-            style={styles.stepperBtn}
-            onPress={() => setDaysToStaySafe(Math.max(1, daysToStaySafe - 1))}
-          >
-            <Text style={styles.stepperBtnText}>−</Text>
-          </TouchableOpacity>
-          <Text style={styles.stepperValue}>{daysToStaySafe} days</Text>
-          <TouchableOpacity
-            style={styles.stepperBtn}
-            onPress={() => setDaysToStaySafe(daysToStaySafe + 1)}
-          >
-            <Text style={styles.stepperBtnText}>+</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Daily basics */}
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Daily basics</Text>
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.basicsInput}
-            value={`KSh ${dailyBasics}`}
-            onChangeText={(text) => {
-              const num = parseInt(text.replace(/[^0-9]/g, ""));
-              if (!isNaN(num)) setDailyBasics(num);
-            }}
-            keyboardType="numeric"
-            selectTextOnFocus
-          />
-          <Pencil size={16} color={Colors.textMuted} />
-        </View>
-      </View>
-
-      {/* Committed Expenses */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>Committed next 14 days</Text>
-          <TouchableOpacity onPress={() => setShowAddExpense(true)}>
-            <Text style={styles.addLink}>+ Add</Text>
-          </TouchableOpacity>
         </View>
 
-        {expenses.length === 0 ? (
-          <TouchableOpacity
-            style={styles.emptyExpense}
-            onPress={() => setShowAddExpense(true)}
-          >
-            <Text style={styles.emptyExpenseText}>
-              + Add rent, bills, subscriptions
-            </Text>
-            <Text style={styles.emptyExpenseSub}>
-              This improves your float calculation
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          expenses.map((expense) => {
-            const days = daysUntil(expense.due_date);
-            const isUrgent = days <= 3;
-            return (
-              <TouchableOpacity
-                key={expense.id}
-                style={styles.expenseCard}
-                onLongPress={() => {
-                  Alert.alert("Delete expense", `Remove ${expense.name}?`, [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Delete",
-                      style: "destructive",
-                      onPress: () => deleteExpense(expense.id),
-                    },
-                  ]);
+        {/* Daily basics */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Daily basics</Text>
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.basicsInput}
+              value={`KSh ${dailyBasics}`}
+              onChangeText={(text) => {
+                const num = parseInt(text.replace(/[^0-9]/g, ""));
+                if (!isNaN(num)) setDailyBasics(num);
+              }}
+              keyboardType="numeric"
+              selectTextOnFocus
+            />
+            <Pencil size={16} color={Colors.textMuted} />
+          </View>
+        </View>
+
+        {/* Committed Expenses */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Committed next 14 days</Text>
+            <TouchableOpacity onPress={() => setShowAddExpense(true)}>
+              <Text style={styles.addLink}>+ Add</Text>
+            </TouchableOpacity>
+          </View>
+
+          {expenses.length === 0 ? (
+            <TouchableOpacity
+              style={styles.emptyExpense}
+              onPress={() => setShowAddExpense(true)}
+            >
+              <Text style={styles.emptyExpenseText}>
+                + Add rent, bills, subscriptions
+              </Text>
+              <Text style={styles.emptyExpenseSub}>
+                This improves your float calculation
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            expenses.map((expense) => {
+              const days = daysUntil(expense.due_date);
+              const isUrgent = days <= 3;
+              return (
+                <TouchableOpacity
+                  key={expense.id}
+                  style={styles.expenseCard}
+                  onLongPress={() => {
+                    Alert.alert("Delete expense", `Remove ${expense.name}?`, [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: () => deleteExpense(expense.id),
+                      },
+                    ]);
+                  }}
+                >
+                  <View>
+                    <Text style={styles.expenseName}>{expense.name}</Text>
+                    <Text
+                      style={[
+                        styles.expenseDue,
+                        {
+                          color: isUrgent
+                            ? Colors.critical
+                            : Colors.textSecondary,
+                        },
+                      ]}
+                    >
+                      {days === 0
+                        ? "Due today"
+                        : days === 1
+                          ? "Due tomorrow"
+                          : `Due in ${days} days`}
+                    </Text>
+                  </View>
+                  <Text style={styles.expenseAmount}>
+                    {formatKES(expense.amount)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </View>
+
+        {/* Yesterday feedback */}
+        <View
+          style={[
+            styles.yesterdayCard,
+            {
+              backgroundColor: isOnTrack
+                ? Colors.safeLight
+                : Colors.cautionLight,
+            },
+          ]}
+        >
+          <View>
+            <Text style={styles.yesterdayText}>
+              Yesterday you used:{" "}
+              <Text
+                style={{
+                  fontWeight: "700",
+                  color: isOnTrack ? Colors.safe : Colors.caution,
                 }}
               >
-                <View>
-                  <Text style={styles.expenseName}>{expense.name}</Text>
-                  <Text
-                    style={[
-                      styles.expenseDue,
-                      {
-                        color: isUrgent
-                          ? Colors.critical
-                          : Colors.textSecondary,
-                      },
-                    ]}
-                  >
-                    {days === 0
-                      ? "Due today"
-                      : days === 1
-                        ? "Due tomorrow"
-                        : `Due in ${days} days`}
-                  </Text>
-                </View>
-                <Text style={styles.expenseAmount}>
-                  {formatKES(expense.amount)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })
-        )}
-      </View>
-
-      {/* Yesterday feedback */}
-      <View
-        style={[
-          styles.yesterdayCard,
-          {
-            backgroundColor: isOnTrack ? Colors.safeLight : Colors.cautionLight,
-          },
-        ]}
-      >
-        <View>
-          <Text style={styles.yesterdayText}>
-            Yesterday you used:{" "}
-            <Text
-              style={{
-                fontWeight: "700",
-                color: isOnTrack ? Colors.safe : Colors.caution,
-              }}
-            >
-              {formatKES(yesterdaySpend)}
+                {formatKES(yesterdaySpend)}
+              </Text>
             </Text>
-          </Text>
-          <Text
-            style={[
-              styles.yesterdayStatus,
-              { color: isOnTrack ? Colors.safe : Colors.caution },
-            ]}
-          >
-            {yesterdaySpend === 0
-              ? "No spend recorded yet"
-              : isOnTrack
-                ? "You're on track 👍"
-                : "Spending a bit high 😅"}
-          </Text>
+            <Text
+              style={[
+                styles.yesterdayStatus,
+                { color: isOnTrack ? Colors.safe : Colors.caution },
+              ]}
+            >
+              {yesterdaySpend === 0
+                ? "No spend recorded yet"
+                : isOnTrack
+                  ? "You're on track 👍"
+                  : "Spending a bit high 😅"}
+            </Text>
+          </View>
         </View>
-      </View>
+      </ScrollView>
 
-      {/* Add Expense Modal */}
+      {/* FAB */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowAddTransaction(true)}
+      >
+        <Text style={styles.fabText}>+ Log spend</Text>
+      </TouchableOpacity>
+
+      {/* Modals */}
       <AddExpenseModal
         visible={showAddExpense}
         onClose={() => setShowAddExpense(false)}
         onAdd={addExpense}
       />
-    </ScrollView>
+      <AddTransactionModal
+        visible={showAddTransaction}
+        onClose={() => setShowAddTransaction(false)}
+        userId={userId}
+        onSuccess={loadData}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  container: {
+    flex: 1,
   },
   content: {
     paddingHorizontal: 20,
     paddingTop: 56,
-    paddingBottom: 32,
+    paddingBottom: 100,
     gap: 16,
   },
   loadingContainer: {
@@ -621,5 +644,24 @@ const styles = StyleSheet.create({
   yesterdayStatus: {
     ...Typography.caption,
     marginTop: 2,
+  },
+  fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 20,
+    backgroundColor: Colors.accent,
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  fabText: {
+    color: Colors.background,
+    fontSize: 15,
+    fontWeight: "700",
   },
 });
