@@ -8,6 +8,7 @@ import {
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -16,8 +17,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import AddExpenseModal from "../components/AddExpenseModal";
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
+import { useExpenses } from "../hooks/useExpenses";
 import { supabase } from "../utils/supabase";
 import BankConnectionScreen from "./BankConnectionScreen";
 
@@ -68,6 +71,13 @@ function calculateFloat(
   return Math.floor(available / Math.max(days, 1));
 }
 
+function daysUntil(dateString: string): number {
+  const date = new Date(dateString);
+  const today = new Date();
+  const diff = date.getTime() - today.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
 export default function HomeScreen() {
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
@@ -76,11 +86,13 @@ export default function HomeScreen() {
   const [yesterdaySpend, setYesterdaySpend] = useState(0);
   const [dailyBasics, setDailyBasics] = useState(200);
   const [daysToStaySafe, setDaysToStaySafe] = useState(3);
-  const [committedExpenses, setCommittedExpenses] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hasAccount, setHasAccount] = useState(false);
   const [floatState, setFloatState] = useState<FloatState>("safe");
+  const [showAddExpense, setShowAddExpense] = useState(false);
+
+  const { expenses, addExpense, deleteExpense } = useExpenses(userId);
 
   useEffect(() => {
     loadData();
@@ -124,17 +136,15 @@ export default function HomeScreen() {
       const fourteenDays = new Date();
       fourteenDays.setDate(fourteenDays.getDate() + 14);
 
-      const { data: expenses } = await supabase
+      const { data: expensesData } = await supabase
         .from("committed_expenses")
         .select("*")
         .eq("user_id", user.id)
         .lte("due_date", fourteenDays.toISOString())
         .order("due_date", { ascending: true });
 
-      setCommittedExpenses(expenses || []);
-
       const totalCommitted =
-        expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+        expensesData?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
 
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
@@ -239,7 +249,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Float Number — Hero */}
+      {/* Float Number Hero */}
       <View style={styles.floatHero}>
         <Text style={[styles.safelyUseLabel, { color: stateColor }]}>
           You can safely use
@@ -250,7 +260,7 @@ export default function HomeScreen() {
         <Text style={[styles.todayLabel, { color: stateColor }]}>today</Text>
       </View>
 
-      {/* State message card */}
+      {/* State card */}
       <View style={[styles.stateCard, { backgroundColor: stateBg }]}>
         <StateIcon size={20} color={stateColor} />
         <Text style={[styles.stateMessage, { color: stateColor }]}>
@@ -258,7 +268,7 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {/* Days to stay safe stepper */}
+      {/* Days to stay safe */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Days to stay safe</Text>
         <View style={styles.stepper}>
@@ -292,10 +302,76 @@ export default function HomeScreen() {
             keyboardType="numeric"
             selectTextOnFocus
           />
-          <TouchableOpacity>
-            <Pencil size={16} color={Colors.textMuted} />
+          <Pencil size={16} color={Colors.textMuted} />
+        </View>
+      </View>
+
+      {/* Committed Expenses */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>Committed next 14 days</Text>
+          <TouchableOpacity onPress={() => setShowAddExpense(true)}>
+            <Text style={styles.addLink}>+ Add</Text>
           </TouchableOpacity>
         </View>
+
+        {expenses.length === 0 ? (
+          <TouchableOpacity
+            style={styles.emptyExpense}
+            onPress={() => setShowAddExpense(true)}
+          >
+            <Text style={styles.emptyExpenseText}>
+              + Add rent, bills, subscriptions
+            </Text>
+            <Text style={styles.emptyExpenseSub}>
+              This improves your float calculation
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          expenses.map((expense) => {
+            const days = daysUntil(expense.due_date);
+            const isUrgent = days <= 3;
+            return (
+              <TouchableOpacity
+                key={expense.id}
+                style={styles.expenseCard}
+                onLongPress={() => {
+                  Alert.alert("Delete expense", `Remove ${expense.name}?`, [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Delete",
+                      style: "destructive",
+                      onPress: () => deleteExpense(expense.id),
+                    },
+                  ]);
+                }}
+              >
+                <View>
+                  <Text style={styles.expenseName}>{expense.name}</Text>
+                  <Text
+                    style={[
+                      styles.expenseDue,
+                      {
+                        color: isUrgent
+                          ? Colors.critical
+                          : Colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    {days === 0
+                      ? "Due today"
+                      : days === 1
+                        ? "Due tomorrow"
+                        : `Due in ${days} days`}
+                  </Text>
+                </View>
+                <Text style={styles.expenseAmount}>
+                  {formatKES(expense.amount)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })
+        )}
       </View>
 
       {/* Yesterday feedback */}
@@ -307,7 +383,6 @@ export default function HomeScreen() {
           },
         ]}
       >
-        <Text style={styles.yesterdayIcon}></Text>
         <View>
           <Text style={styles.yesterdayText}>
             Yesterday you used:{" "}
@@ -329,11 +404,18 @@ export default function HomeScreen() {
             {yesterdaySpend === 0
               ? "No spend recorded yet"
               : isOnTrack
-                ? "You're on track"
-                : "Spending a bit high"}
+                ? "You're on track 👍"
+                : "Spending a bit high 😅"}
           </Text>
         </View>
       </View>
+
+      {/* Add Expense Modal */}
+      <AddExpenseModal
+        visible={showAddExpense}
+        onClose={() => setShowAddExpense(false)}
+        onAdd={addExpense}
+      />
     </ScrollView>
   );
 }
@@ -426,9 +508,19 @@ const styles = StyleSheet.create({
   section: {
     gap: 8,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   sectionLabel: {
     ...Typography.label,
     color: Colors.textSecondary,
+  },
+  addLink: {
+    ...Typography.caption,
+    color: Colors.accent,
+    fontWeight: "600",
   },
   stepper: {
     flexDirection: "row",
@@ -473,15 +565,54 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontWeight: "500",
   },
+  emptyExpense: {
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: "center",
+    gap: 4,
+  },
+  emptyExpenseText: {
+    ...Typography.body,
+    color: Colors.accent,
+    fontWeight: "500",
+  },
+  emptyExpenseSub: {
+    ...Typography.label,
+    color: Colors.textMuted,
+  },
+  expenseCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  expenseName: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    fontWeight: "500",
+  },
+  expenseDue: {
+    ...Typography.label,
+    marginTop: 2,
+  },
+  expenseAmount: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
   yesterdayCard: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 12,
     padding: 14,
     gap: 12,
-  },
-  yesterdayIcon: {
-    fontSize: 24,
   },
   yesterdayText: {
     ...Typography.body,
