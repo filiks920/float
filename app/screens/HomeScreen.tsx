@@ -24,6 +24,7 @@ import { Typography } from "../constants/typography";
 import { useExpenses } from "../hooks/useExpenses";
 import { supabase } from "../utils/supabase";
 import BankConnectionScreen from "./BankConnectionScreen";
+import { sendFloatAlert } from "../utils/notifications";
 
 type FloatState = "safe" | "caution" | "critical";
 
@@ -96,9 +97,11 @@ export default function HomeScreen() {
 
   const { expenses, addExpense, deleteExpense } = useExpenses(userId);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+ useEffect(() => {
+  loadData();
+  requestNotificationPermission();
+  scheduleDailyReminder();
+}, []);
 
   useEffect(() => {
     const state = getFloatState(floatNumber, dailyBasics, daysToStaySafe);
@@ -173,6 +176,9 @@ export default function HomeScreen() {
         daysUntilIncome,
       );
       setFloatNumber(float);
+      if (float < 500 && float >= 0) {
+       await sendFloatAlert(float);
+}
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -281,7 +287,7 @@ export default function HomeScreen() {
             >
               <Text style={styles.stepperBtnText}>−</Text>
             </TouchableOpacity>
-            <Text style={styles.stepperValue}>{daysToStaySafe} days</Text>
+            <Text style={styles.stepperValue}>{daysToStaySafe} Days</Text>
             <TouchableOpacity
               style={styles.stepperBtn}
               onPress={() => setDaysToStaySafe(daysToStaySafe + 1)}
