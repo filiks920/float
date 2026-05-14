@@ -5,7 +5,7 @@ import {
   RefreshCw,
   Shield,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Modal,
@@ -59,8 +59,18 @@ function getStateMessage(state: FloatState, days: number): string {
   return `You may run out tomorrow.\nReduce spending or get money in soon.`;
 }
 
-function formatKES(amount: number): string {
-  return `KSh ${Math.round(amount).toLocaleString("en-KE")}`;
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  KES: "KSh",
+  USD: "$",
+  GBP: "£",
+  EUR: "€",
+  UGX: "UGX",
+  TZS: "TZS",
+};
+
+function formatAmount(amount: number, currency: string): string {
+  const symbol = CURRENCY_SYMBOLS[currency] || currency;
+  return `${symbol} ${Math.round(amount).toLocaleString("en-KE")}`;
 }
 
 function calculateFloat(
@@ -101,8 +111,11 @@ export default function HomeScreen() {
   const [updatingBalance, setUpdatingBalance] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState(500);
   const [alertSent, setAlertSent] = useState(false);
-
+  const [currency, setCurrency] = useState("KES");
+  const [daysInput, setDaysInput] = useState(String(daysToStaySafe));
+  const [basicsInput, setBasicsInput] = useState(String(dailyBasics));
   const { expenses, addExpense, deleteExpense } = useExpenses(userId);
+  const basicsRef = useRef<any>(null);
 
   useEffect(() => {
     loadData();
@@ -135,14 +148,16 @@ export default function HomeScreen() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, float_alert_threshold")
+        .select("full_name, float_alert_threshold, currency")
         .eq("id", user.id)
         .single();
 
       if (profile) {
         setUserName(profile.full_name?.split(" ")[0] || "there");
+        setCurrency(profile.currency || "KES");
         if (profile.float_alert_threshold) {
           setAlertThreshold(profile.float_alert_threshold);
+          if (profile.currency) setCurrency(profile.currency);
         }
       }
 
@@ -241,7 +256,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>calculating your float...</Text>
+        <Text style={styles.loadingText}>Calculating your float...</Text>
       </View>
     );
   }
@@ -288,7 +303,9 @@ export default function HomeScreen() {
             <Text style={styles.appName}>Float</Text>
             <Text style={styles.balanceLabel}>Balance</Text>
             <View style={styles.balanceRow}>
-              <Text style={styles.balanceAmount}>{formatKES(balance)}</Text>
+              <Text style={styles.balanceAmount}>
+                {formatAmount(balance, currency)}
+              </Text>
               <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
                 <RefreshCw size={16} color={Colors.textSecondary} />
               </TouchableOpacity>
@@ -322,7 +339,7 @@ export default function HomeScreen() {
             You can safely use
           </Text>
           <Text style={[styles.floatNumber, { color: stateColor }]}>
-            {formatKES(floatNumber)}
+            {formatAmount(floatNumber, currency)}
           </Text>
           <Text style={[styles.todayLabel, { color: stateColor }]}>today</Text>
         </View>
@@ -341,14 +358,34 @@ export default function HomeScreen() {
           <View style={styles.stepper}>
             <TouchableOpacity
               style={styles.stepperBtn}
-              onPress={() => setDaysToStaySafe(Math.max(1, daysToStaySafe - 1))}
+              onPress={() => {
+                const newVal = Math.max(1, daysToStaySafe - 1);
+                setDaysToStaySafe(newVal);
+                setDaysInput(String(newVal));
+              }}
             >
               <Text style={styles.stepperBtnText}>−</Text>
             </TouchableOpacity>
-            <Text style={styles.stepperValue}>{daysToStaySafe} days</Text>
+            <TextInput
+              style={styles.stepperValue}
+              value={daysInput}
+              onChangeText={(text) => setDaysInput(text.replace(/[^0-9]/g, ""))}
+              onBlur={() => {
+                const num = parseInt(daysInput);
+                const valid = isNaN(num) || num < 1 ? daysToStaySafe : num;
+                setDaysToStaySafe(valid);
+                setDaysInput(String(valid));
+              }}
+              keyboardType="numeric"
+              textAlign="center"
+            />
             <TouchableOpacity
               style={styles.stepperBtn}
-              onPress={() => setDaysToStaySafe(daysToStaySafe + 1)}
+              onPress={() => {
+                const newVal = daysToStaySafe + 1;
+                setDaysToStaySafe(newVal);
+                setDaysInput(String(newVal));
+              }}
             >
               <Text style={styles.stepperBtnText}>+</Text>
             </TouchableOpacity>
@@ -359,17 +396,25 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Daily basics</Text>
           <View style={styles.inputRow}>
+            <Text style={styles.currencyPrefix}>{currency}</Text>
             <TextInput
+              ref={basicsRef}
               style={styles.basicsInput}
-              value={`KSh ${dailyBasics}`}
-              onChangeText={(text) => {
-                const num = parseInt(text.replace(/[^0-9]/g, ""));
-                if (!isNaN(num)) setDailyBasics(num);
+              value={basicsInput}
+              onChangeText={(text) =>
+                setBasicsInput(text.replace(/[^0-9]/g, ""))
+              }
+              onBlur={() => {
+                const num = parseInt(basicsInput);
+                const valid = isNaN(num) || num < 1 ? dailyBasics : num;
+                setDailyBasics(valid);
+                setBasicsInput(String(valid));
               }}
               keyboardType="numeric"
-              selectTextOnFocus
             />
-            <Pencil size={16} color={Colors.textMuted} />
+            <TouchableOpacity onPress={() => basicsRef.current?.focus()}>
+              <Pencil size={16} color={Colors.textMuted} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -433,7 +478,7 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                   <Text style={styles.expenseAmount}>
-                    {formatKES(expense.amount)}
+                    {formatAmount(expense.amount, currency)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -461,7 +506,7 @@ export default function HomeScreen() {
                   color: isOnTrack ? Colors.safe : Colors.caution,
                 }}
               >
-                {formatKES(yesterdaySpend)}
+                {formatAmount(yesterdaySpend, currency)}
               </Text>
             </Text>
             <Text
@@ -513,10 +558,10 @@ export default function HomeScreen() {
             <View style={styles.handle} />
             <Text style={styles.modalTitle}>Update balance</Text>
             <Text style={styles.modalSubtitle}>
-              Current: {formatKES(balance)}
+              Current: {formatAmount(balance, currency)}
             </Text>
             <View style={styles.balanceInputRow}>
-              <Text style={styles.currencyLabel}>KES</Text>
+              <Text style={styles.currencyLabel}>{currency}</Text>
               <TextInput
                 style={styles.balanceInputField}
                 placeholder="Enter new balance"
@@ -871,5 +916,14 @@ const styles = StyleSheet.create({
   cancelText: {
     ...Typography.body,
     color: Colors.textSecondary,
+  },
+  currencyPrefix: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    paddingRight: 4,
+    borderRightWidth: 1,
+    borderRightColor: Colors.border,
+    marginRight: 4,
   },
 });
