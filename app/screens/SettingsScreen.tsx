@@ -18,6 +18,7 @@ interface Profile {
   full_name: string;
   phone_number: string;
   currency: string;
+  float_alert_threshold: number;
 }
 
 const CURRENCIES = ["KES", "USD", "GBP", "EUR", "UGX", "TZS"];
@@ -30,7 +31,9 @@ export default function SettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [thresholdModalVisible, setThresholdModalVisible] = useState(false);
   const [editedName, setEditedName] = useState("");
+  const [editedThreshold, setEditedThreshold] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -45,11 +48,12 @@ export default function SettingsScreen() {
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, phone_number, currency")
+        .select("full_name, phone_number, currency, float_alert_threshold")
         .eq("id", user.id)
         .single();
       setProfile(data);
       setEditedName(data?.full_name || "");
+      setEditedThreshold(String(data?.float_alert_threshold || 500));
     } catch (error) {
       console.error(error);
     } finally {
@@ -99,6 +103,34 @@ export default function SettingsScreen() {
       setCurrencyModalVisible(false);
     } catch (error: any) {
       Alert.alert("Error", error.message);
+    }
+  }
+
+  async function saveThreshold() {
+    const amount = parseInt(editedThreshold.replace(/[^0-9]/g, ""));
+    if (!amount || amount <= 0) {
+      Alert.alert("Error", "Enter a valid amount");
+      return;
+    }
+    setSaving(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ float_alert_threshold: amount })
+        .eq("id", user.id);
+      if (error) throw error;
+      setProfile((prev) =>
+        prev ? { ...prev, float_alert_threshold: amount } : prev,
+      );
+      setThresholdModalVisible(false);
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -248,7 +280,8 @@ export default function SettingsScreen() {
             <View>
               <Text style={styles.rowLabel}>Float alerts</Text>
               <Text style={styles.rowSub}>
-                Notify when float drops below KSh 500
+                Notify when float drops below KSh{" "}
+                {profile?.float_alert_threshold || 500}
               </Text>
             </View>
             <Switch
@@ -258,6 +291,28 @@ export default function SettingsScreen() {
               thumbColor={Colors.background}
             />
           </View>
+          {notificationsEnabled && (
+            <>
+              <View style={styles.divider} />
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => {
+                  setEditedThreshold(
+                    String(profile?.float_alert_threshold || 500),
+                  );
+                  setThresholdModalVisible(true);
+                }}
+              >
+                <Text style={styles.rowLabel}>Alert threshold</Text>
+                <View style={styles.rowRight}>
+                  <Text style={styles.rowValue}>
+                    KSh {profile?.float_alert_threshold || 500}
+                  </Text>
+                  <Text style={styles.editHint}>Edit</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
 
@@ -365,6 +420,50 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={styles.cancelBtn}
               onPress={() => setCurrencyModalVisible(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Threshold Modal */}
+      <Modal
+        visible={thresholdModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setThresholdModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.handle} />
+            <Text style={styles.modalTitle}>Alert threshold</Text>
+            <Text style={styles.modalSubtitle}>
+              Get notified when your float drops below this amount
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editedThreshold}
+              onChangeText={(text) =>
+                setEditedThreshold(text.replace(/[^0-9]/g, ""))
+              }
+              placeholder="e.g. 500"
+              placeholderTextColor={Colors.textMuted}
+              keyboardType="numeric"
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.modalBtn, saving && { opacity: 0.6 }]}
+              onPress={saveThreshold}
+              disabled={saving}
+            >
+              <Text style={styles.modalBtnText}>
+                {saving ? "Saving..." : "Save"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setThresholdModalVisible(false)}
             >
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
@@ -507,6 +606,11 @@ const styles = StyleSheet.create({
     ...Typography.title,
     color: Colors.textPrimary,
     marginBottom: 4,
+  },
+  modalSubtitle: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: -4,
   },
   modalInput: {
     backgroundColor: Colors.surface,

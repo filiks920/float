@@ -1,7 +1,6 @@
 import {
   AlertOctagon,
   AlertTriangle,
-  Bell,
   Pencil,
   RefreshCw,
   Shield,
@@ -9,6 +8,7 @@ import {
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -83,6 +83,7 @@ function daysUntil(dateString: string): number {
 export default function HomeScreen() {
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
+  const [accountId, setAccountId] = useState("");
   const [balance, setBalance] = useState(0);
   const [floatNumber, setFloatNumber] = useState(0);
   const [yesterdaySpend, setYesterdaySpend] = useState(0);
@@ -94,6 +95,12 @@ export default function HomeScreen() {
   const [floatState, setFloatState] = useState<FloatState>("safe");
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [showUpdateBalance, setShowUpdateBalance] = useState(false);
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+  const [newBalance, setNewBalance] = useState("");
+  const [updatingBalance, setUpdatingBalance] = useState(false);
+  const [alertThreshold, setAlertThreshold] = useState(500);
+  const [alertSent, setAlertSent] = useState(false);
 
   const { expenses, addExpense, deleteExpense } = useExpenses(userId);
 
@@ -107,6 +114,16 @@ export default function HomeScreen() {
     setFloatState(state);
   }, [floatNumber, dailyBasics, daysToStaySafe]);
 
+  useEffect(() => {
+    if (floatNumber > 0 && floatNumber < alertThreshold && !alertSent) {
+      sendFloatAlert(floatNumber);
+      setAlertSent(true);
+    }
+    if (floatNumber >= alertThreshold) {
+      setAlertSent(false);
+    }
+  }, [floatNumber, alertThreshold]);
+
   async function loadData() {
     try {
       const {
@@ -118,20 +135,27 @@ export default function HomeScreen() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, float_alert_threshold")
         .eq("id", user.id)
         .single();
 
       if (profile) {
         setUserName(profile.full_name?.split(" ")[0] || "there");
+        if (profile.float_alert_threshold) {
+          setAlertThreshold(profile.float_alert_threshold);
+        }
       }
 
       const { data: accounts } = await supabase
         .from("bank_accounts")
-        .select("balance")
+        .select("id, balance")
         .eq("user_id", user.id);
 
       setHasAccount((accounts?.length || 0) > 0);
+
+      if (accounts && accounts.length > 0) {
+        setAccountId(accounts[0].id);
+      }
 
       const totalBalance =
         accounts?.reduce((sum, acc) => sum + (acc.balance || 0), 0) || 0;
@@ -175,9 +199,6 @@ export default function HomeScreen() {
         daysUntilIncome,
       );
       setFloatNumber(float);
-      if (float < 500 && float >= 0) {
-        await sendFloatAlert(float);
-      }
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -188,11 +209,33 @@ export default function HomeScreen() {
 
   function onRefresh() {
     setRefreshing(true);
+    setShowUpdateBanner(true);
     loadData();
   }
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
+  async function handleUpdateBalance() {
+    const amount = parseInt(newBalance.replace(/[^0-9]/g, ""));
+    if (!amount || amount <= 0) {
+      Alert.alert("Error", "Please enter a valid balance");
+      return;
+    }
+    setUpdatingBalance(true);
+    try {
+      const { error } = await supabase
+        .from("bank_accounts")
+        .update({ balance: amount, last_synced: new Date().toISOString() })
+        .eq("id", accountId);
+      if (error) throw error;
+      setBalance(amount);
+      setNewBalance("");
+      setShowUpdateBalance(false);
+      setShowUpdateBanner(false);
+      loadData();
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setUpdatingBalance(false);
+    }
   }
 
   if (loading) {
@@ -252,10 +295,26 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.updatedText}>Updated just now</Text>
           </View>
-          <TouchableOpacity onPress={handleSignOut}>
-            <Bell size={22} color={Colors.textPrimary} />
-          </TouchableOpacity>
         </View>
+
+        {/* Update balance banner */}
+        {showUpdateBanner && (
+          <TouchableOpacity
+            style={styles.updateBanner}
+            onPress={() => {
+              setNewBalance("");
+              setShowUpdateBalance(true);
+            }}
+          >
+            <Text style={styles.updateBannerText}>
+              Balance out of date?{" "}
+              <Text style={styles.updateBannerLink}>Update it</Text>
+            </Text>
+            <TouchableOpacity onPress={() => setShowUpdateBanner(false)}>
+              <Text style={styles.updateBannerDismiss}>✕</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
         {/* Float Number Hero */}
         <View style={styles.floatHero}>
@@ -286,7 +345,7 @@ export default function HomeScreen() {
             >
               <Text style={styles.stepperBtnText}>−</Text>
             </TouchableOpacity>
-            <Text style={styles.stepperValue}>{daysToStaySafe} Days</Text>
+            <Text style={styles.stepperValue}>{daysToStaySafe} days</Text>
             <TouchableOpacity
               style={styles.stepperBtn}
               onPress={() => setDaysToStaySafe(daysToStaySafe + 1)}
@@ -414,8 +473,8 @@ export default function HomeScreen() {
               {yesterdaySpend === 0
                 ? "No spend recorded yet"
                 : isOnTrack
-                  ? "You're on track 👍"
-                  : "Spending a bit high 😅"}
+                  ? "You're on track "
+                  : "Spending a bit high "}
             </Text>
           </View>
         </View>
@@ -441,6 +500,56 @@ export default function HomeScreen() {
         userId={userId}
         onSuccess={loadData}
       />
+
+      {/* Update Balance Modal */}
+      <Modal
+        visible={showUpdateBalance}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowUpdateBalance(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.handle} />
+            <Text style={styles.modalTitle}>Update balance</Text>
+            <Text style={styles.modalSubtitle}>
+              Current: {formatKES(balance)}
+            </Text>
+            <View style={styles.balanceInputRow}>
+              <Text style={styles.currencyLabel}>KES</Text>
+              <TextInput
+                style={styles.balanceInputField}
+                placeholder="Enter new balance"
+                placeholderTextColor={Colors.textMuted}
+                value={newBalance}
+                onChangeText={(text) =>
+                  setNewBalance(text.replace(/[^0-9]/g, ""))
+                }
+                keyboardType="numeric"
+                autoFocus
+              />
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.modalBtn,
+                (!newBalance || updatingBalance) && { opacity: 0.5 },
+              ]}
+              onPress={handleUpdateBalance}
+              disabled={!newBalance || updatingBalance}
+            >
+              <Text style={styles.modalBtnText}>
+                {updatingBalance ? "Updating..." : "Update balance"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setShowUpdateBalance(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -501,6 +610,31 @@ const styles = StyleSheet.create({
     ...Typography.label,
     color: Colors.textMuted,
     marginTop: 2,
+  },
+  updateBanner: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: Colors.cautionLight,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Colors.caution,
+  },
+  updateBannerText: {
+    ...Typography.caption,
+    color: Colors.textPrimary,
+  },
+  updateBannerLink: {
+    color: Colors.accent,
+    fontWeight: "700",
+  },
+  updateBannerDismiss: {
+    color: Colors.textMuted,
+    fontSize: 14,
+    fontWeight: "600",
+    paddingLeft: 8,
   },
   floatHero: {
     alignItems: "center",
@@ -668,5 +802,74 @@ const styles = StyleSheet.create({
     color: Colors.background,
     fontSize: 15,
     fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "#00000066",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+    gap: 14,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 4,
+  },
+  modalTitle: {
+    ...Typography.title,
+    color: Colors.textPrimary,
+  },
+  modalSubtitle: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    marginTop: -8,
+  },
+  balanceInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.accent,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  currencyLabel: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  balanceInputField: {
+    flex: 1,
+    fontSize: 40,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    letterSpacing: -1,
+  },
+  modalBtn: {
+    backgroundColor: Colors.accent,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+  },
+  modalBtnText: {
+    color: Colors.background,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  cancelBtn: {
+    alignItems: "center",
+    padding: 8,
+  },
+  cancelText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
   },
 });
