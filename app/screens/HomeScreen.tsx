@@ -112,6 +112,7 @@ export default function HomeScreen() {
   const [alertThreshold, setAlertThreshold] = useState(500);
   const [alertSent, setAlertSent] = useState(false);
   const [currency, setCurrency] = useState("KES");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [daysInput, setDaysInput] = useState(String(daysToStaySafe));
   const [basicsInput, setBasicsInput] = useState(String(dailyBasics));
   const { expenses, addExpense, deleteExpense } = useExpenses(userId);
@@ -148,7 +149,9 @@ export default function HomeScreen() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, float_alert_threshold, currency")
+        .select(
+          "full_name, float_alert_threshold, currency, daily_basics, days_to_stay_safe",
+        )
         .eq("id", user.id)
         .single();
 
@@ -158,6 +161,14 @@ export default function HomeScreen() {
         if (profile.float_alert_threshold) {
           setAlertThreshold(profile.float_alert_threshold);
           if (profile.currency) setCurrency(profile.currency);
+          if (profile.daily_basics) {
+            setDailyBasics(profile.daily_basics);
+            setBasicsInput(String(profile.daily_basics));
+          }
+          if (profile.days_to_stay_safe) {
+            setDaysToStaySafe(profile.days_to_stay_safe);
+            setDaysInput(String(profile.days_to_stay_safe));
+          }
         }
       }
 
@@ -217,6 +228,7 @@ export default function HomeScreen() {
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
+      setLastUpdated(new Date());
       setLoading(false);
       setRefreshing(false);
     }
@@ -250,6 +262,20 @@ export default function HomeScreen() {
       Alert.alert("Error", error.message);
     } finally {
       setUpdatingBalance(false);
+    }
+  }
+  async function saveUserPreferences(basics: number, days: number) {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase
+        .from("profiles")
+        .update({ daily_basics: basics, days_to_stay_safe: days })
+        .eq("id", user.id);
+    } catch (error) {
+      console.error("Error saving preferences:", error);
     }
   }
 
@@ -300,7 +326,9 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.appName}>Float</Text>
+            <Text style={styles.appName}>
+              {userName ? `Hi, ${userName} 👋` : "Float"}
+            </Text>
             <Text style={styles.balanceLabel}>Balance</Text>
             <View style={styles.balanceRow}>
               <Text style={styles.balanceAmount}>
@@ -310,7 +338,13 @@ export default function HomeScreen() {
                 <RefreshCw size={16} color={Colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.updatedText}>Updated just now</Text>
+            {lastUpdated && (
+              <Text style={styles.updatedText}>
+                {lastUpdated
+                  ? `Updated at ${lastUpdated.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}`
+                  : "Updated just now"}
+              </Text>
+            )}
           </View>
         </View>
 
@@ -375,6 +409,7 @@ export default function HomeScreen() {
                 const valid = isNaN(num) || num < 1 ? daysToStaySafe : num;
                 setDaysToStaySafe(valid);
                 setDaysInput(String(valid));
+                saveUserPreferences(dailyBasics, valid);
               }}
               keyboardType="numeric"
               textAlign="center"
@@ -409,11 +444,12 @@ export default function HomeScreen() {
                 const valid = isNaN(num) || num < 1 ? dailyBasics : num;
                 setDailyBasics(valid);
                 setBasicsInput(String(valid));
+                saveUserPreferences(valid, daysToStaySafe);
               }}
               keyboardType="numeric"
             />
             <TouchableOpacity onPress={() => basicsRef.current?.focus()}>
-              <Pencil size={16} color={Colors.textMuted} />
+              <Pencil size={20} color={Colors.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -564,7 +600,7 @@ export default function HomeScreen() {
               <Text style={styles.currencyLabel}>{currency}</Text>
               <TextInput
                 style={styles.balanceInputField}
-                placeholder="Enter new balance"
+                placeholder="Enter"
                 placeholderTextColor={Colors.textMuted}
                 value={newBalance}
                 onChangeText={(text) =>
