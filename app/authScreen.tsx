@@ -1,4 +1,4 @@
-import { useRouter } from "@/.expo/types/router";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -25,7 +25,7 @@ import { useTheme } from "./utils/ThemeContext";
 export default function AuthScreen() {
   // useState stores values that change on screen
   // [currentValue, functionToChangeIt] = useState(startingValue)
-  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");

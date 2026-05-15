@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { BarChart2, Home, Lightbulb, User } from "lucide-react-native";
+import { BarChart2, Home, TrendingUp, User } from "lucide-react-native";
 import { Colors } from "../constants/colors";
 
 export default function TabLayout() {
@@ -43,9 +43,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="goals"
         options={{
-          title: "Goals",
+          title: "Insights",
           tabBarIcon: ({ color, size }) => (
-            <Lightbulb color={color} size={size} />
+            <TrendingUp color={color} size={size} />
           ),
         }}
       />

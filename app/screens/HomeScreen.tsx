@@ -284,8 +284,25 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Calculating your float...</Text>
+      <View style={styles.skeletonContainer}>
+        {/* Header skeleton */}
+        <View style={styles.skeletonHeader}>
+          <View style={styles.skeletonTitle} />
+          <View style={styles.skeletonSubtitle} />
+          <View style={styles.skeletonBalance} />
+        </View>
+
+        {/* Hero skeleton */}
+        <View style={styles.skeletonHero}>
+          <View style={styles.skeletonHeroSmall} />
+          <View style={styles.skeletonHeroLarge} />
+          <View style={styles.skeletonHeroSmall} />
+        </View>
+
+        {/* Card skeletons */}
+        <View style={styles.skeletonCard} />
+        <View style={styles.skeletonCard} />
+        <View style={styles.skeletonCard} />
       </View>
     );
   }
@@ -555,7 +572,7 @@ export default function HomeScreen() {
               ]}
             >
               {yesterdaySpend === 0
-                ? "No spend recorded yet"
+                ? "Nothing logged yet — tap Log spend to record today's spending"
                 : isOnTrack
                   ? "You're on track "
                   : "Spending a bit high "}
@@ -569,7 +586,11 @@ export default function HomeScreen() {
         style={styles.fab}
         onPress={() => setShowAddTransaction(true)}
       >
-        <Text style={styles.fabText}>Log spend</Text>
+        <Text style={styles.fabText}>
+          Log spend ·{" "}
+          {formatAmount(Math.max(0, dailyBasics - yesterdaySpend), currency)}{" "}
+          left
+        </Text>
       </TouchableOpacity>
 
       {/* Modals */}
@@ -964,5 +985,55 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: Colors.border,
     marginRight: 4,
+  },
+  skeletonContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    paddingHorizontal: 20,
+    paddingTop: 56,
+    gap: 16,
+  },
+  skeletonHeader: {
+    gap: 8,
+  },
+  skeletonTitle: {
+    width: 80,
+    height: 24,
+    backgroundColor: Colors.surface,
+    borderRadius: 6,
+  },
+  skeletonSubtitle: {
+    width: 60,
+    height: 14,
+    backgroundColor: Colors.surface,
+    borderRadius: 4,
+  },
+  skeletonBalance: {
+    width: 140,
+    height: 22,
+    backgroundColor: Colors.surface,
+    borderRadius: 4,
+  },
+  skeletonHero: {
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 8,
+  },
+  skeletonHeroSmall: {
+    width: 120,
+    height: 16,
+    backgroundColor: Colors.surface,
+    borderRadius: 4,
+  },
+  skeletonHeroLarge: {
+    width: 200,
+    height: 60,
+    backgroundColor: Colors.surface,
+    borderRadius: 8,
+  },
+  skeletonCard: {
+    height: 64,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
   },
 });

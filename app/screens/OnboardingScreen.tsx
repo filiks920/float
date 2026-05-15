@@ -2,6 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import {
   Dimensions,
+  PanResponder,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -62,9 +63,25 @@ export default function OnboardingScreen({ onDone }: Props) {
   const isLast = currentIndex === SLIDES.length - 1;
   const { isDark } = useTheme();
   const Colors = isDark ? DarkColors : LightColors;
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dx < -50) {
+        // Swipe left — go forward
+        if (currentIndex < SLIDES.length - 1) {
+          setCurrentIndex(currentIndex + 1);
+        }
+      } else if (gestureState.dx > 50) {
+        // Swipe right — go back
+        if (currentIndex > 0) {
+          setCurrentIndex(currentIndex - 1);
+        }
+      }
+    },
+  });
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...panResponder.panHandlers}>
       {/* Skip button */}
       {!isLast && (
         <TouchableOpacity style={styles.skipBtn} onPress={handleDone}>

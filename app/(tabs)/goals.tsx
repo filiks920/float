@@ -1,2 +1,2 @@
-import GoalsScreen from "../screens/GoalsScreen";
-export default GoalsScreen;
+import InsightsScreen from "../screens/InsightsScreen";
+export default InsightsScreen;

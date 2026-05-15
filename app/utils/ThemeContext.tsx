@@ -29,6 +29,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   async function toggleTheme() {
     const newTheme = theme === "light" ? "dark" : "light";
+    console.log("toggleTheme called, switching to:", newTheme);
     setTheme(newTheme);
     await SecureStore.setItemAsync("theme", newTheme);
   }

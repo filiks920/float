@@ -13,9 +13,18 @@ export default function Index() {
 
   useEffect(() => {
     checkAll();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   async function checkAll() {
+    await SecureStore.deleteItemAsync("onboarding_complete");
     const [
       {
         data: { session },
@@ -25,6 +34,10 @@ export default function Index() {
       supabase.auth.getSession(),
       SecureStore.getItemAsync("onboarding_complete"),
     ]);
+
+    console.log("session:", session ? "exists" : "null");
+    console.log("onboarding value:", onboarding);
+
     setSession(session);
     setOnboardingDone(onboarding === "true");
     setLoading(false);
@@ -45,9 +58,14 @@ export default function Index() {
     );
   }
 
-  // Show onboarding first time only
   if (!onboardingDone) {
-    return <OnboardingScreen onDone={() => setOnboardingDone(true)} />;
+    return (
+      <OnboardingScreen
+        onDone={() => {
+          setOnboardingDone(true);
+        }}
+      />
+    );
   }
 
   if (!session) {

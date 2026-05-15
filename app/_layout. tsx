@@ -10,12 +10,13 @@ import {
 import { Colors } from "./constants/colors";
 import LockScreen from "./screens/LockScreen";
 import { supabase } from "./utils/supabase";
-import { ThemeProvider } from './utils/ThemeContext';
+import { ThemeProvider, useTheme } from "./utils/ThemeContext";
 
-export default function RootLayout() {
+function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(true);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -56,22 +57,24 @@ export default function RootLayout() {
     );
   }
 
- if (locked && session) {
-    return (
-      <ThemeProvider>
-        <LockScreen onUnlock={() => setLocked(false)} />
-      </ThemeProvider>
-    );
+  if (locked && session) {
+    return <LockScreen onUnlock={() => setLocked(false)} />;
   }
 
   return (
-    <ThemeProvider>
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="AuthScreen" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="screens/OnboardingScreen" />
     </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <AppContent />
     </ThemeProvider>
   );
 }
