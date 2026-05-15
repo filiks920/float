@@ -1,44 +1,48 @@
-export const Colors = {
-  // Backgrounds
+export const LightColors = {
   background: "#FFFFFF",
   surface: "#F8FAFC",
   surfaceRaised: "#F1F5F9",
-
-  // Text
   textPrimary: "#0F172A",
   textSecondary: "#64748B",
   textMuted: "#94A3B8",
-
-  // Brand — Float green
   accent: "#16A34A",
   accentLight: "#DCFCE7",
   accentDim: "#16A34A22",
-
-  // Semantic states
   safe: "#16A34A",
   safeLight: "#DCFCE7",
   caution: "#F59E0B",
   cautionLight: "#FEF3C7",
   critical: "#DC2626",
   criticalLight: "#FEE2E2",
-
-  // Neutral
   positive: "#16A34A",
   negative: "#DC2626",
   warning: "#F59E0B",
-
-  // Border
   border: "#E2E8F0",
   borderLight: "#F1F5F9",
-
-  // Dark mode equivalents (used when dark mode enabled)
-  dark: {
-    background: "#0a0a0a",
-    surface: "#141414",
-    surfaceRaised: "#1c1c1c",
-    textPrimary: "#ffffff",
-    textSecondary: "#888888",
-    textMuted: "#444444",
-    border: "#222222",
-  },
 } as const;
+
+export const DarkColors = {
+  background: "#0a0a0a",
+  surface: "#141414",
+  surfaceRaised: "#1c1c1c",
+  textPrimary: "#ffffff",
+  textSecondary: "#888888",
+  textMuted: "#444444",
+  accent: "#00E5BE",
+  accentLight: "#00E5BE22",
+  accentDim: "#00E5BE11",
+  safe: "#00C896",
+  safeLight: "#00C89622",
+  caution: "#FFB800",
+  cautionLight: "#FFB80022",
+  critical: "#FF4D4D",
+  criticalLight: "#FF4D4D22",
+  positive: "#00C896",
+  negative: "#FF4D4D",
+  warning: "#FFB800",
+  border: "#222222",
+  borderLight: "#1a1a1a",
+} as const;
+
+// Default export for files that haven't been updated yet
+export const Colors = LightColors;

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "float",
+    "name": "Float",
     "slug": "float",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.xfloat"
+      "package": "com.floatapp.float"
     },
     "web": {
       "output": "static",

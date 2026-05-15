@@ -1,6 +1,8 @@
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -13,6 +15,7 @@ import {
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { supabase } from "../utils/supabase";
+import { useTheme } from "../utils/ThemeContext";
 
 interface Profile {
   full_name: string;
@@ -27,7 +30,7 @@ export default function SettingsScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
@@ -35,7 +38,7 @@ export default function SettingsScreen() {
   const [editedName, setEditedName] = useState("");
   const [editedThreshold, setEditedThreshold] = useState("");
   const [saving, setSaving] = useState(false);
-
+  const router = useRouter();
   useEffect(() => {
     loadProfile();
   }, []);
@@ -140,7 +143,14 @@ export default function SettingsScreen() {
       {
         text: "Sign out",
         style: "destructive",
-        onPress: async () => await supabase.auth.signOut(),
+        onPress: async () => {
+          try {
+            await supabase.auth.signOut();
+            router.replace("/AuthScreen" as any);
+          } catch (error: any) {
+            Alert.alert("Error", error.message);
+          }
+        },
       },
     ]);
   }
@@ -162,6 +172,7 @@ export default function SettingsScreen() {
               if (!user) return;
               await supabase.from("profiles").delete().eq("id", user.id);
               await supabase.auth.signOut();
+              router.replace("/AuthScreen" as any);
             } catch (error: any) {
               Alert.alert("Error", error.message);
             }
@@ -226,14 +237,8 @@ export default function SettingsScreen() {
               <Text style={styles.rowSub}>Switch to dark theme</Text>
             </View>
             <Switch
-              value={darkMode}
-              onValueChange={(val) => {
-                setDarkMode(val);
-                Alert.alert(
-                  "Coming soon",
-                  "Dark mode is coming in the next update.",
-                );
-              }}
+              value={isDark}
+              onValueChange={toggleTheme}
               trackColor={{ false: Colors.border, true: Colors.accent }}
               thumbColor={Colors.background}
             />
@@ -325,16 +330,21 @@ export default function SettingsScreen() {
             <Text style={styles.rowValue}>1.0.0</Text>
           </View>
           <View style={styles.divider} />
-          <View style={styles.row}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => Linking.openURL("https://floatapp.co/privacy")}
+          >
             <Text style={styles.rowLabel}>Privacy policy</Text>
             <Text style={styles.rowValue}>→</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Terms of service</Text>
-            <Text style={styles.rowValue}>→</Text>
-          </View>
+          </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          style={styles.row}
+          onPress={() => Linking.openURL("https://floatapp.co/terms")}
+        >
+          <Text style={styles.rowLabel}>Terms of service</Text>
+          <Text style={styles.rowValue}>→</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Sign out */}

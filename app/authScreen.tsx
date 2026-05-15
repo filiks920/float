@@ -1,3 +1,4 @@
+import { useRouter } from "@/.expo/types/router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -10,9 +11,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors } from "./constants/colors";
+import { Colors, DarkColors, LightColors } from "./constants/colors";
 import { Typography } from "./constants/typography";
 import { supabase } from "./utils/supabase";
+import { useTheme } from "./utils/ThemeContext";
 
 // What this screen does:
 // 1. Shows sign in form by default
@@ -23,11 +25,14 @@ import { supabase } from "./utils/supabase";
 export default function AuthScreen() {
   // useState stores values that change on screen
   // [currentValue, functionToChangeIt] = useState(startingValue)
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { isDark } = useTheme();
+  const Colors = isDark ? DarkColors : LightColors;
 
   async function handleAuth() {
     // Validate inputs before sending to server
@@ -61,17 +66,22 @@ export default function AuthScreen() {
           },
         });
         if (error) throw error;
-        Alert.alert(
-          "Check your email",
-          "We sent you a confirmation link. Click it to activate your account.",
-        );
+        Alert.alert("Account created", "Welcome to Float!", [
+          {
+            text: "Continue",
+            onPress: () => router.replace("/(tabs)/home" as any),
+          },
+        ]);
       } else {
         // Sign in to existing account
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(),
           password,
         });
         if (error) throw error;
+        if (data.session) {
+          router.replace("/(tabs)/home" as any);
+        }
         // On success app navigation happens automatically
         // via the session listener we set up in _layout.tsx
       }

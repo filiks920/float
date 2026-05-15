@@ -9,9 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors } from "../constants/colors";
+import { Colors, DarkColors, LightColors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { supabase } from "../utils/supabase";
+import { useTheme } from "../utils/ThemeContext";
 
 interface Goal {
   id: string;
@@ -43,6 +44,8 @@ export default function GoalsScreen() {
   const [editAmount, setEditAmount] = useState("");
 
   const [saving, setSaving] = useState(false);
+  const { isDark } = useTheme();
+  const Colors = isDark ? DarkColors : LightColors;
 
   useEffect(() => {
     loadGoals();

@@ -10,9 +10,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors } from "../constants/colors";
+import { Colors, DarkColors, LightColors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { supabase } from "../utils/supabase";
+import { useTheme } from "../utils/ThemeContext";
 
 export default function BankConnectionScreen({
   onSuccess,
@@ -23,6 +24,8 @@ export default function BankConnectionScreen({
 }) {
   const [loading, setLoading] = useState(false);
   const [balance, setBalance] = useState("");
+  const { isDark } = useTheme();
+  const Colors = isDark ? DarkColors : LightColors;
 
   async function handleManualEntry() {
     const amount = parseInt(balance.replace(/[^0-9]/g, ""));

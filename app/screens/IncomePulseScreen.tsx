@@ -6,9 +6,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors } from "../constants/colors";
+import { Colors, DarkColors, LightColors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { supabase } from "../utils/supabase";
+import { useTheme } from "../utils/ThemeContext";
 
 type Period = "day" | "week" | "month";
 
@@ -56,6 +57,8 @@ export default function ActivityScreen() {
   const [totalIn, setTotalIn] = useState(0);
   const [totalOut, setTotalOut] = useState(0);
   const [loading, setLoading] = useState(true);
+  const { isDark } = useTheme();
+  const Colors = isDark ? DarkColors : LightColors;
 
   useEffect(() => {
     loadActivity();

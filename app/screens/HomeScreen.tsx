@@ -19,11 +19,12 @@ import {
 } from "react-native";
 import AddExpenseModal from "../components/AddExpenseModal";
 import AddTransactionModal from "../components/AddTransactionModal";
-import { Colors } from "../constants/colors";
+import { Colors, DarkColors, LightColors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { useExpenses } from "../hooks/useExpenses";
 import { scheduleDailyReminder, sendFloatAlert } from "../utils/notifications";
 import { supabase } from "../utils/supabase";
+import { useTheme } from "../utils/ThemeContext";
 import BankConnectionScreen from "./BankConnectionScreen";
 
 type FloatState = "safe" | "caution" | "critical";
@@ -117,6 +118,8 @@ export default function HomeScreen() {
   const [basicsInput, setBasicsInput] = useState(String(dailyBasics));
   const { expenses, addExpense, deleteExpense } = useExpenses(userId);
   const basicsRef = useRef<any>(null);
+  const { isDark } = useTheme();
+  const Colors = isDark ? DarkColors : LightColors;
 
   useEffect(() => {
     loadData();

@@ -1,14 +1,15 @@
 import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import {
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Colors } from "../constants/colors";
+import { Colors, DarkColors, LightColors } from "../constants/colors";
 import { Typography } from "../constants/typography";
+import { useTheme } from "../utils/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
@@ -59,6 +60,8 @@ export default function OnboardingScreen({ onDone }: Props) {
 
   const slide = SLIDES[currentIndex];
   const isLast = currentIndex === SLIDES.length - 1;
+  const { isDark } = useTheme();
+  const Colors = isDark ? DarkColors : LightColors;
 
   return (
     <View style={styles.container}>
