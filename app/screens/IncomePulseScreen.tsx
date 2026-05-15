@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { Colors, DarkColors, LightColors } from "../constants/colors";
+import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
+import { useCurrency } from "../utils/CurrencyContext";
 import { supabase } from "../utils/supabase";
-import { useTheme } from "../utils/ThemeContext";
 
 type Period = "day" | "week" | "month";
 
@@ -20,10 +20,6 @@ interface Transaction {
   description: string;
   category: string;
   date: string;
-}
-
-function formatKES(amount: number): string {
-  return `KSh ${Math.round(amount).toLocaleString("en-KE")}`;
 }
 
 function formatDate(dateString: string): string {
@@ -57,8 +53,7 @@ export default function ActivityScreen() {
   const [totalIn, setTotalIn] = useState(0);
   const [totalOut, setTotalOut] = useState(0);
   const [loading, setLoading] = useState(true);
-  const { isDark } = useTheme();
-  const Colors = isDark ? DarkColors : LightColors;
+  const { formatAmount } = useCurrency();
 
   useEffect(() => {
     loadActivity();
@@ -148,7 +143,7 @@ export default function ActivityScreen() {
             <Text style={styles.summaryIcon}>↓</Text>
             <Text style={styles.summaryLabel}>Money in</Text>
             <Text style={[styles.summaryAmount, { color: Colors.safe }]}>
-              {formatKES(totalIn)}
+              {formatAmount(totalIn)}
             </Text>
           </View>
           <View
@@ -160,7 +155,7 @@ export default function ActivityScreen() {
             <Text style={styles.summaryIcon}>↑</Text>
             <Text style={styles.summaryLabel}>Money out</Text>
             <Text style={[styles.summaryAmount, { color: Colors.critical }]}>
-              {formatKES(totalOut)}
+              {formatAmount(totalOut)}
             </Text>
           </View>
         </View>
@@ -177,7 +172,7 @@ export default function ActivityScreen() {
             ]}
           >
             {totalIn - totalOut >= 0 ? "+" : ""}
-            {formatKES(totalIn - totalOut)}
+            {formatAmount(totalIn - totalOut)}
           </Text>
         </View>
 
@@ -215,7 +210,7 @@ export default function ActivityScreen() {
                 ]}
               >
                 {tx.type === "credit" ? "+" : "-"}
-                {formatKES(tx.amount)}
+                {formatAmount(tx.amount)}
               </Text>
             </View>
           ))

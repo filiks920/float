@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors, DarkColors, LightColors } from "./constants/colors";
+import { Colors } from "./constants/colors";
 import { Typography } from "./constants/typography";
 import { supabase } from "./utils/supabase";
 import { useTheme } from "./utils/ThemeContext";
@@ -32,7 +32,8 @@ export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const { isDark } = useTheme();
-  const Colors = isDark ? DarkColors : LightColors;
+
+  const { Colors } = useTheme();
 
   async function handleAuth() {
     // Validate inputs before sending to server

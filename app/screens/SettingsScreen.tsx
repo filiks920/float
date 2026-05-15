@@ -12,8 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { DarkColors, LightColors } from "../constants/colors";
 import { Typography } from "../constants/typography";
+import { useCurrency } from "../utils/CurrencyContext";
 import { supabase } from "../utils/supabase";
 import { useTheme } from "../utils/ThemeContext";
 
@@ -24,11 +24,9 @@ interface Profile {
   float_alert_threshold: number;
 }
 
-const CURRENCIES = ["KES", "USD", "GBP", "EUR", "UGX", "TZS"];
-
 export default function SettingsScreen() {
   const { isDark, toggleTheme } = useTheme();
-  const Colors = isDark ? DarkColors : LightColors;
+
   console.log("SettingsScreen isDark:", isDark);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -41,6 +39,9 @@ export default function SettingsScreen() {
   const [editedName, setEditedName] = useState("");
   const [editedThreshold, setEditedThreshold] = useState("");
   const [saving, setSaving] = useState(false);
+  const { Colors } = useTheme();
+  const { currency, setCurrency } = useCurrency();
+  const CURRENCIES = ["KES", "USD", "GBP", "EUR", "UGX", "TZS"];
 
   useEffect(() => {
     loadProfile();
@@ -94,21 +95,22 @@ export default function SettingsScreen() {
     }
   }
 
-  async function saveCurrency(currency: string) {
+  async function saveCurrency(newCurrency: string) {
+    await setCurrency(newCurrency);
+    setProfile((prev) => (prev ? { ...prev, currency: newCurrency } : prev));
+    setCurrencyModalVisible(false);
+    // Also save to Supabase
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { error } = await supabase
+      await supabase
         .from("profiles")
-        .update({ currency })
+        .update({ currency: newCurrency })
         .eq("id", user.id);
-      if (error) throw error;
-      setProfile((prev) => (prev ? { ...prev, currency } : prev));
-      setCurrencyModalVisible(false);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
+    } catch (error) {
+      console.error(error);
     }
   }
 
@@ -605,7 +607,7 @@ export default function SettingsScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.handle} />
             <Text style={styles.modalTitle}>Select currency</Text>
-            {CURRENCIES.map((c) => (
+            {CURRENCIES.map((c: string) => (
               <TouchableOpacity
                 key={c}
                 style={[

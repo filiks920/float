@@ -1,5 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { createContext, useContext, useEffect, useState } from "react";
+import { DarkColors, LightColors } from "../constants/colors";
+type ColorScheme = typeof LightColors;
 
 type Theme = "light" | "dark";
 
@@ -7,12 +9,14 @@ interface ThemeContextType {
   theme: Theme;
   isDark: boolean;
   toggleTheme: () => void;
+  Colors: ColorScheme;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: "light",
   isDark: false,
   toggleTheme: () => {},
+  Colors: LightColors,
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -29,7 +33,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   async function toggleTheme() {
     const newTheme = theme === "light" ? "dark" : "light";
-    console.log("toggleTheme called, switching to:", newTheme);
     setTheme(newTheme);
     await SecureStore.setItemAsync("theme", newTheme);
   }
@@ -40,6 +43,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         theme,
         isDark: theme === "dark",
         toggleTheme,
+        Colors: (theme === "dark" ? DarkColors : LightColors) as ColorScheme,
       }}
     >
       {children}

@@ -7,16 +7,16 @@ import {
   AppStateStatus,
   View,
 } from "react-native";
-import { Colors } from "./constants/colors";
+import { CurrencyProvider } from "./utils/CurrencyContext";
+import { ThemeProvider, useTheme } from "./utils/ThemeContext";
 import LockScreen from "./screens/LockScreen";
 import { supabase } from "./utils/supabase";
-import { ThemeProvider, useTheme } from "./utils/ThemeContext";
 
 function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(true);
-  const { isDark } = useTheme();
+  const { Colors } = useTheme();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -24,18 +24,18 @@ function AppContent() {
       setLoading(false);
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (!session) setLocked(true);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        if (!session) setLocked(true);
+      }
+    );
 
     const appStateListener = AppState.addEventListener(
       "change",
       (state: AppStateStatus) => {
         if (state === "background") setLocked(true);
-      },
+      }
     );
 
     return () => {
@@ -74,7 +74,9 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <CurrencyProvider>
+        <AppContent />
+      </CurrencyProvider>
     </ThemeProvider>
   );
 }

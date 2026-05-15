@@ -19,12 +19,13 @@ import {
 } from "react-native";
 import AddExpenseModal from "../components/AddExpenseModal";
 import AddTransactionModal from "../components/AddTransactionModal";
-import { Colors, DarkColors, LightColors } from "../constants/colors";
+import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { useExpenses } from "../hooks/useExpenses";
+import { useCurrency } from "../utils/CurrencyContext";
+
 import { scheduleDailyReminder, sendFloatAlert } from "../utils/notifications";
 import { supabase } from "../utils/supabase";
-import { useTheme } from "../utils/ThemeContext";
 import BankConnectionScreen from "./BankConnectionScreen";
 
 type FloatState = "safe" | "caution" | "critical";
@@ -58,20 +59,6 @@ function getStateMessage(state: FloatState, days: number): string {
   if (state === "caution")
     return `Careful today.\nAt this pace, you may run out in 2 days.`;
   return `You may run out tomorrow.\nReduce spending or get money in soon.`;
-}
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  KES: "KSh",
-  USD: "$",
-  GBP: "£",
-  EUR: "€",
-  UGX: "UGX",
-  TZS: "TZS",
-};
-
-function formatAmount(amount: number, currency: string): string {
-  const symbol = CURRENCY_SYMBOLS[currency] || currency;
-  return `${symbol} ${Math.round(amount).toLocaleString("en-KE")}`;
 }
 
 function calculateFloat(
@@ -112,14 +99,13 @@ export default function HomeScreen() {
   const [updatingBalance, setUpdatingBalance] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState(500);
   const [alertSent, setAlertSent] = useState(false);
-  const [currency, setCurrency] = useState("KES");
+  const { formatAmount } = useCurrency();
+
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [daysInput, setDaysInput] = useState(String(daysToStaySafe));
   const [basicsInput, setBasicsInput] = useState(String(dailyBasics));
   const { expenses, addExpense, deleteExpense } = useExpenses(userId);
   const basicsRef = useRef<any>(null);
-  const { isDark } = useTheme();
-  const Colors = isDark ? DarkColors : LightColors;
 
   useEffect(() => {
     loadData();
@@ -153,17 +139,17 @@ export default function HomeScreen() {
       const { data: profile } = await supabase
         .from("profiles")
         .select(
-          "full_name, float_alert_threshold, currency, daily_basics, days_to_stay_safe",
+          "full_name, float_alert_threshold, daily_basics, days_to_stay_safe",
         )
         .eq("id", user.id)
         .single();
 
       if (profile) {
         setUserName(profile.full_name?.split(" ")[0] || "there");
-        setCurrency(profile.currency || "KES");
+        // setCurrency(profile.currency || "KES");
         if (profile.float_alert_threshold) {
           setAlertThreshold(profile.float_alert_threshold);
-          if (profile.currency) setCurrency(profile.currency);
+
           if (profile.daily_basics) {
             setDailyBasics(profile.daily_basics);
             setBasicsInput(String(profile.daily_basics));
@@ -351,9 +337,7 @@ export default function HomeScreen() {
             </Text>
             <Text style={styles.balanceLabel}>Balance</Text>
             <View style={styles.balanceRow}>
-              <Text style={styles.balanceAmount}>
-                {formatAmount(balance, currency)}
-              </Text>
+              <Text style={styles.balanceAmount}>{formatAmount(balance)}</Text>
               <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
                 <RefreshCw size={16} color={Colors.textSecondary} />
               </TouchableOpacity>
@@ -393,7 +377,7 @@ export default function HomeScreen() {
             You can safely use
           </Text>
           <Text style={[styles.floatNumber, { color: stateColor }]}>
-            {formatAmount(floatNumber, currency)}
+            {formatAmount(floatNumber)}
           </Text>
           <Text style={[styles.todayLabel, { color: stateColor }]}>today</Text>
         </View>
@@ -451,7 +435,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Daily basics</Text>
           <View style={styles.inputRow}>
-            <Text style={styles.currencyPrefix}>{currency}</Text>
+            <Text style={styles.currencyPrefix}></Text>
             <TextInput
               ref={basicsRef}
               style={styles.basicsInput}
@@ -534,7 +518,7 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                   <Text style={styles.expenseAmount}>
-                    {formatAmount(expense.amount, currency)}
+                    {formatAmount(expense.amount)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -562,7 +546,7 @@ export default function HomeScreen() {
                   color: isOnTrack ? Colors.safe : Colors.caution,
                 }}
               >
-                {formatAmount(yesterdaySpend, currency)}
+                {formatAmount(yesterdaySpend)}
               </Text>
             </Text>
             <Text
@@ -587,8 +571,7 @@ export default function HomeScreen() {
         onPress={() => setShowAddTransaction(true)}
       >
         <Text style={styles.fabText}>
-          Log spend ·{" "}
-          {formatAmount(Math.max(0, dailyBasics - yesterdaySpend), currency)}{" "}
+          Log spend · {formatAmount(Math.max(0, dailyBasics - yesterdaySpend))}{" "}
           left
         </Text>
       </TouchableOpacity>
@@ -618,10 +601,10 @@ export default function HomeScreen() {
             <View style={styles.handle} />
             <Text style={styles.modalTitle}>Update balance</Text>
             <Text style={styles.modalSubtitle}>
-              Current: {formatAmount(balance, currency)}
+              Current: {formatAmount(balance)}
             </Text>
             <View style={styles.balanceInputRow}>
-              <Text style={styles.currencyLabel}>{currency}</Text>
+              <Text style={styles.currencyLabel}></Text>
               <TextInput
                 style={styles.balanceInputField}
                 placeholder="Enter"

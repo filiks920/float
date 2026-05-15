@@ -10,8 +10,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors, DarkColors, LightColors } from "../constants/colors";
+import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
+import { useCurrency } from "../utils/CurrencyContext";
 import { supabase } from "../utils/supabase";
 import { useTheme } from "../utils/ThemeContext";
 
@@ -25,7 +26,9 @@ export default function BankConnectionScreen({
   const [loading, setLoading] = useState(false);
   const [balance, setBalance] = useState("");
   const { isDark } = useTheme();
-  const Colors = isDark ? DarkColors : LightColors;
+
+  const { Colors } = useTheme();
+  const { currency, setCurrency } = useCurrency();
 
   async function handleManualEntry() {
     const amount = parseInt(balance.replace(/[^0-9]/g, ""));
@@ -43,7 +46,7 @@ export default function BankConnectionScreen({
           account_name: "M-Pesa",
           account_type: "mobile_money",
           balance: amount,
-          currency: "KES",
+          currency: currency,
           last_synced: new Date().toISOString(),
         })
         .select()
@@ -72,7 +75,7 @@ export default function BankConnectionScreen({
         </View>
 
         <View style={styles.inputSection}>
-          <Text style={styles.currencyLabel}>KES</Text>
+          <Text style={styles.currencyPickerLabel}>{currency}</Text>
           <TextInput
             style={styles.balanceInput}
             placeholder="0"
@@ -85,6 +88,30 @@ export default function BankConnectionScreen({
             keyboardType="numeric"
             autoFocus
           />
+        </View>
+        <View style={styles.currencyRow}>
+          <Text style={styles.currencyPickerLabel}>Currency</Text>
+          <View style={styles.currencyPicker}>
+            {["KES", "USD", "GBP", "EUR", "UGX", "TZS"].map((c) => (
+              <TouchableOpacity
+                key={c}
+                style={[
+                  styles.currencyChip,
+                  currency === c && styles.currencyChipActive,
+                ]}
+                onPress={() => setCurrency(c)}
+              >
+                <Text
+                  style={[
+                    styles.currencyChipText,
+                    currency === c && styles.currencyChipTextActive,
+                  ]}
+                >
+                  {c}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <Text style={styles.hint}>
@@ -137,7 +164,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     gap: 8,
   },
-  currencyLabel: {
+  currencyPickerLabel: {
     fontSize: 28,
     fontWeight: "600",
     color: Colors.textSecondary,
@@ -165,6 +192,40 @@ const styles = StyleSheet.create({
   buttonText: {
     color: Colors.background,
     fontSize: 16,
+    fontWeight: "700",
+  },
+  currencyRow: {
+    gap: 8,
+  },
+  currencyLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: Colors.textSecondary,
+  },
+  currencyPicker: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  currencyChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  currencyChipActive: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accentLight,
+  },
+  currencyChipText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Colors.textSecondary,
+  },
+  currencyChipTextActive: {
+    color: Colors.accent,
     fontWeight: "700",
   },
 });

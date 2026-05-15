@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Colors, DarkColors, LightColors } from "../constants/colors";
+import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
 import { useBiometrics } from "../hooks/useBiometrics";
 import { useTheme } from "../utils/ThemeContext";
@@ -17,7 +17,7 @@ import { useTheme } from "../utils/ThemeContext";
 export default function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   const { isChecking, isSupported, authenticate } = useBiometrics();
   const { isDark } = useTheme();
-  const Colors = isDark ? DarkColors : LightColors;
+  const { Colors } = useTheme();
 
   // Auto-trigger biometric prompt when screen appears
   useEffect(() => {
