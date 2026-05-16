@@ -446,37 +446,6 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {/* Security */}
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>SECURITY</Text>
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View>
-              <Text style={styles.rowLabel}>Biometric lock</Text>
-              <Text style={styles.rowSub}>
-                Require fingerprint to open Float
-              </Text>
-            </View>
-            <Switch
-              value={biometricsEnabled}
-              onValueChange={setBiometricsEnabled}
-              trackColor={{ false: Colors.border, true: Colors.accent }}
-              thumbColor={Colors.background}
-            />
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.row}>
-            <View>
-              <Text style={styles.rowLabel}>Auto lock</Text>
-              <Text style={styles.rowSub}>
-                Locks when app goes to background
-              </Text>
-            </View>
-            <Text style={styles.badge}>Always on</Text>
-          </View>
-        </View>
-      </View>
-
       {/* Notifications */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>

@@ -1,13 +1,7 @@
 import { Session } from "@supabase/supabase-js";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  AppState,
-  AppStateStatus,
-  View,
-} from "react-native";
-import LockScreen from "./screens/LockScreen";
+import { ActivityIndicator, View } from "react-native";
 import { CurrencyProvider } from "./utils/CurrencyContext";
 import { supabase } from "./utils/supabase";
 import { ThemeProvider, useTheme } from "./utils/ThemeContext";
@@ -15,7 +9,6 @@ import { ThemeProvider, useTheme } from "./utils/ThemeContext";
 function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [locked, setLocked] = useState(false);
   const { Colors } = useTheme();
 
   useEffect(() => {
@@ -28,24 +21,9 @@ function AppContent() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (!session) {
-        setLocked(true);
-      } else if (_event === "SIGNED_IN") {
-        setLocked(false); // skip lock on fresh login
-      }
     });
 
-    const appStateListener = AppState.addEventListener(
-      "change",
-      (state: AppStateStatus) => {
-        if (state === "background") setLocked(true);
-      },
-    );
-
-    return () => {
-      subscription.unsubscribe();
-      appStateListener.remove();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   if (loading) {
@@ -61,10 +39,6 @@ function AppContent() {
         <ActivityIndicator color={Colors.accent} size="large" />
       </View>
     );
-  }
-
-  if (locked && session) {
-    return <LockScreen onUnlock={() => setLocked(false)} />;
   }
 
   return (
