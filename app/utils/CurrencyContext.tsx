@@ -42,6 +42,11 @@ export const ALL_CURRENCIES: { code: string; symbol: string; name: string }[] =
     { code: "SGD", symbol: "S$", name: "Singapore Dollar" },
   ];
 
+function getSymbol(currency: string): string {
+  const entry = ALL_CURRENCIES.find((c) => c.code === currency);
+  return entry?.symbol || currency;
+}
+
 const CurrencyContext = createContext<CurrencyContextType>({
   currency: "KES",
   setCurrency: () => Promise.resolve(),
@@ -57,11 +62,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
   async function loadCurrency() {
     try {
-      // First check SecureStore (set during onboarding before user exists in DB)
       const stored = await SecureStore.getItemAsync("user_currency");
       if (stored) setCurrencyState(stored);
-
-      // Then check Supabase (overrides if user has saved preference)
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -78,10 +80,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function setCurrency(newCurrency: string) {
+    console.log("CurrencyContext setCurrency called with:", newCurrency);
     setCurrencyState(newCurrency);
-    // Save to SecureStore immediately (works before/after auth)
     await SecureStore.setItemAsync("user_currency", newCurrency);
-    // Save to Supabase if logged in
     try {
       const {
         data: { user },
@@ -96,14 +97,21 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  function formatAmount(amount: number): string {
-    const entry = ALL_CURRENCIES.find((c) => c.code === currency);
-    const symbol = entry?.symbol || currency;
+  // formatAmount is recreated every time currency changes
+  // This forces all consumers to re-render
+  const formatAmount = (amount: number): string => {
+    const symbol = getSymbol(currency);
     return `${symbol} ${Math.round(amount).toLocaleString("en-KE")}`;
-  }
+  };
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, formatAmount }}>
+    <CurrencyContext.Provider
+      value={{
+        currency,
+        setCurrency,
+        formatAmount,
+      }}
+    >
       {children}
     </CurrencyContext.Provider>
   );

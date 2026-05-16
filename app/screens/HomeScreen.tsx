@@ -1,3 +1,4 @@
+import { useFocusEffect } from "expo-router";
 import {
   AlertOctagon,
   AlertTriangle,
@@ -5,7 +6,8 @@ import {
   RefreshCw,
   Shield,
 } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import {
   Alert,
   Modal,
@@ -24,6 +26,7 @@ import { Typography } from "../constants/typography";
 import { useExpenses } from "../hooks/useExpenses";
 import { useCurrency } from "../utils/CurrencyContext";
 
+import { ALL_CURRENCIES } from "../utils/CurrencyContext";
 import { scheduleDailyReminder, sendFloatAlert } from "../utils/notifications";
 import { supabase } from "../utils/supabase";
 import BankConnectionScreen from "./BankConnectionScreen";
@@ -99,13 +102,25 @@ export default function HomeScreen() {
   const [updatingBalance, setUpdatingBalance] = useState(false);
   const [alertThreshold, setAlertThreshold] = useState(500);
   const [alertSent, setAlertSent] = useState(false);
-  const { formatAmount } = useCurrency();
+  const { currency } = useCurrency();
+  console.log("HomeScreen currency:", currency);
+
+  function formatAmount(amount: number): string {
+    const entry = ALL_CURRENCIES.find((c) => c.code === currency);
+    const symbol = entry?.symbol || currency;
+    return `${symbol} ${Math.round(amount).toLocaleString("en-KE")}`;
+  }
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [daysInput, setDaysInput] = useState(String(daysToStaySafe));
   const [basicsInput, setBasicsInput] = useState(String(dailyBasics));
   const { expenses, addExpense, deleteExpense } = useExpenses(userId);
   const basicsRef = useRef<any>(null);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, []),
+  );
 
   useEffect(() => {
     loadData();

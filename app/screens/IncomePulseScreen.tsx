@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typography";
-import { useCurrency } from "../utils/CurrencyContext";
+import { ALL_CURRENCIES, useCurrency } from "../utils/CurrencyContext";
 import { supabase } from "../utils/supabase";
 
 type Period = "day" | "week" | "month";
@@ -53,7 +54,18 @@ export default function ActivityScreen() {
   const [totalIn, setTotalIn] = useState(0);
   const [totalOut, setTotalOut] = useState(0);
   const [loading, setLoading] = useState(true);
-  const { formatAmount } = useCurrency();
+  const { currency } = useCurrency();
+
+  function formatAmount(amount: number): string {
+    const entry = ALL_CURRENCIES.find((c) => c.code === currency);
+    const symbol = entry?.symbol || currency;
+    return `${symbol} ${Math.round(amount).toLocaleString("en-KE")}`;
+  }
+  useFocusEffect(
+    useCallback(() => {
+      loadActivity();
+    }, [period]),
+  );
 
   useEffect(() => {
     loadActivity();

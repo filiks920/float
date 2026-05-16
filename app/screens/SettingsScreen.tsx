@@ -94,12 +94,11 @@ export default function SettingsScreen() {
       setSaving(false);
     }
   }
-
   async function saveCurrency(newCurrency: string) {
+    console.log("saveCurrency called with:", newCurrency);
     await setCurrency(newCurrency);
     setProfile((prev) => (prev ? { ...prev, currency: newCurrency } : prev));
     setCurrencyModalVisible(false);
-    // Also save to Supabase
     try {
       const {
         data: { user },
@@ -607,7 +606,7 @@ export default function SettingsScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.handle} />
             <Text style={styles.modalTitle}>Select currency</Text>
-            {CURRENCIES.map((c: string) => (
+            {CURRENCIES.map((c) => (
               <TouchableOpacity
                 key={c}
                 style={[

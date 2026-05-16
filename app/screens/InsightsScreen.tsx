@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Typography } from "../constants/typography";
-import { useCurrency } from "../utils/CurrencyContext";
+import { ALL_CURRENCIES, useCurrency } from "../utils/CurrencyContext";
 import { supabase } from "../utils/supabase";
 import { useTheme } from "../utils/ThemeContext";
 
 export default function InsightsScreen() {
   const { Colors } = useTheme();
-  const { formatAmount } = useCurrency();
+  const { currency } = useCurrency();
+
+  function formatAmount(amount: number): string {
+    const entry = ALL_CURRENCIES.find((c) => c.code === currency);
+    const symbol = entry?.symbol || currency;
+    return `${symbol} ${Math.round(amount).toLocaleString("en-KE")}`;
+  }
 
   const [loading, setLoading] = useState(true);
   const [avgDailySpend, setAvgDailySpend] = useState(0);
