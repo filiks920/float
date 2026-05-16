@@ -26,9 +26,11 @@ import { Typography } from "../constants/typography";
 import { useExpenses } from "../hooks/useExpenses";
 import { useCurrency } from "../utils/CurrencyContext";
 
+import { DarkColors, LightColors } from "../constants/colors";
 import { ALL_CURRENCIES } from "../utils/CurrencyContext";
 import { scheduleDailyReminder, sendFloatAlert } from "../utils/notifications";
 import { supabase } from "../utils/supabase";
+import { useTheme } from "../utils/ThemeContext";
 import BankConnectionScreen from "./BankConnectionScreen";
 
 type FloatState = "safe" | "caution" | "critical";
@@ -103,6 +105,7 @@ export default function HomeScreen() {
   const [alertThreshold, setAlertThreshold] = useState(500);
   const [alertSent, setAlertSent] = useState(false);
   const { currency } = useCurrency();
+
   console.log("HomeScreen currency:", currency);
 
   function formatAmount(amount: number): string {
@@ -110,6 +113,8 @@ export default function HomeScreen() {
     const symbol = entry?.symbol || currency;
     return `${symbol} ${Math.round(amount).toLocaleString("en-KE")}`;
   }
+  const { isDark } = useTheme();
+  const Colors = isDark ? DarkColors : LightColors;
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [daysInput, setDaysInput] = useState(String(daysToStaySafe));

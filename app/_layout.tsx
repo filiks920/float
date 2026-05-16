@@ -7,15 +7,15 @@ import {
   AppStateStatus,
   View,
 } from "react-native";
-import { CurrencyProvider } from "./utils/CurrencyContext";
-import { ThemeProvider, useTheme } from "./utils/ThemeContext";
 import LockScreen from "./screens/LockScreen";
+import { CurrencyProvider } from "./utils/CurrencyContext";
 import { supabase } from "./utils/supabase";
+import { ThemeProvider, useTheme } from "./utils/ThemeContext";
 
 function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [locked, setLocked] = useState(true);
+  const [locked, setLocked] = useState(false);
   const { Colors } = useTheme();
 
   useEffect(() => {
@@ -24,18 +24,22 @@ function AppContent() {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        if (!session) setLocked(true);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        setLocked(true);
+      } else if (_event === "SIGNED_IN") {
+        setLocked(false); // skip lock on fresh login
       }
-    );
+    });
 
     const appStateListener = AppState.addEventListener(
       "change",
       (state: AppStateStatus) => {
         if (state === "background") setLocked(true);
-      }
+      },
     );
 
     return () => {
@@ -46,12 +50,14 @@ function AppContent() {
 
   if (loading) {
     return (
-      <View style={{
-        flex: 1,
-        backgroundColor: Colors.background,
-        alignItems: "center",
-        justifyContent: "center",
-      }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.background,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <ActivityIndicator color={Colors.accent} size="large" />
       </View>
     );

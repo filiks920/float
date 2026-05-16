@@ -14,7 +14,7 @@
     "app/constants/.typography.ts",
     "app/screens/LockScreen.tsx",
     "app/screens/HomeScreen. tsx",
-    "app/_layout. tsx",
+    "app/_layout.tsx",
     "app/AuthScreen.tsx"
   ]
 }

@@ -24,7 +24,6 @@ export default function Index() {
   }, []);
 
   async function checkAll() {
-    await SecureStore.deleteItemAsync("onboarding_complete");
     const [
       {
         data: { session },
