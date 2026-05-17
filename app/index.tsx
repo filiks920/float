@@ -2,7 +2,6 @@ import { Redirect } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { Colors } from "./constants/colors";
 import OnboardingScreen from "./screens/OnboardingScreen";
 import { supabase } from "./utils/supabase";
 
@@ -13,14 +12,6 @@ export default function Index() {
 
   useEffect(() => {
     checkAll();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   async function checkAll() {
@@ -33,10 +24,6 @@ export default function Index() {
       supabase.auth.getSession(),
       SecureStore.getItemAsync("onboarding_complete"),
     ]);
-
-    console.log("session:", session ? "exists" : "null");
-    console.log("onboarding value:", onboarding);
-
     setSession(session);
     setOnboardingDone(onboarding === "true");
     setLoading(false);
@@ -47,24 +34,18 @@ export default function Index() {
       <View
         style={{
           flex: 1,
-          backgroundColor: Colors.background,
+          backgroundColor: "#ffffff",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ActivityIndicator color={Colors.accent} size="large" />
+        <ActivityIndicator color="#16A34A" size="large" />
       </View>
     );
   }
 
   if (!onboardingDone) {
-    return (
-      <OnboardingScreen
-        onDone={() => {
-          setOnboardingDone(true);
-        }}
-      />
-    );
+    return <OnboardingScreen onDone={() => setOnboardingDone(true)} />;
   }
 
   if (!session) {

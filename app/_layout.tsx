@@ -3,8 +3,8 @@ import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { CurrencyProvider } from "./utils/CurrencyContext";
-import { supabase } from "./utils/supabase";
 import { ThemeProvider, useTheme } from "./utils/ThemeContext";
+import { supabase } from "./utils/supabase";
 
 function AppContent() {
   const [session, setSession] = useState<Session | null>(null);

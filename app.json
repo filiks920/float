@@ -16,7 +16,6 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#16A34A"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.floatapp.float"
     },
     "web": {
@@ -49,6 +48,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "14b047b3-f692-4659-b9e5-e813ca786441"
+      }
     }
   }
 }
